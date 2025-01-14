@@ -1,12 +1,15 @@
 # Use Raspberry Pi-compatible Python image
 FROM python:3.11-slim
 
-# Install dependencies for GPIO and SPI
+# Install build tools and dependencies
 RUN apt-get update && apt-get install -y \
     python3-dev \
     python3-pip \
     python3-rpi.gpio \
     git \
+    cmake \
+    make \
+    g++ \
     libboost-python-dev \
     libboost-system-dev \
     libboost-thread-dev \
