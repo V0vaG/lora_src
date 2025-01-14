@@ -1,0 +1,3 @@
+VOLUMES="['/home/$USER/script_files/${proejct}:/root/script_files/${proejct}']"
+VERSION='1.0.1'
+ARGS="--build-arg VERSION=$VERSION"

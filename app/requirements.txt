@@ -1,0 +1,4 @@
+Flask
+RPi.GPIO
+pyRF24
+pynmea2

@@ -1,0 +1,7 @@
+VCC → 3.3V (Pin 1)
+GND → GND (Pin 6)
+CE → GPIO22 (Pin 15)
+CSN → CE1 / GPIO7 (Pin 26)
+SCK → GPIO11 (Pin 23)
+MOSI → GPIO10 (Pin 19)
+MISO → GPIO9 (Pin 21)
