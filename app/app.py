@@ -15,9 +15,12 @@ pipes = [b'2Node', b'1Node']
 # Initialize RF24 radio
 radio = RF24(CE_PIN, CSN_PIN)
 messages = []  # Store received messages
+radio_status = "Initializing..."
 
 def setup_radio():
+    global radio_status
     if not radio.begin():
+        radio_status = "Disconnected"
         raise RuntimeError("Radio hardware is not responding")
     radio.setPALevel(RF24_PA_LOW)
     radio.setDataRate(RF24_1MBPS)
@@ -27,6 +30,7 @@ def setup_radio():
     radio.openWritingPipe(pipes[0])
     radio.openReadingPipe(1, pipes[1])
     radio.startListening()
+    radio_status = "Connected"
 
 def receive_messages():
     while True:
@@ -46,7 +50,7 @@ def send_message(message):
 
 @app.route('/')
 def index():
-    return render_template('index.html', messages=messages)
+    return render_template('index.html', messages=messages, status=radio_status)
 
 @app.route('/send', methods=['POST'])
 def send():
@@ -59,7 +63,10 @@ def start_receiver():
     threading.Thread(target=receive_messages, daemon=True).start()
 
 if __name__ == '__main__':
-    setup_radio()
+    try:
+        setup_radio()
+    except RuntimeError:
+        pass  # The status will show "Disconnected"
     start_receiver()
     app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
 

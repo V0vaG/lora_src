@@ -8,6 +8,8 @@
 <body>
     <h1>LoRa Communication Dashboard</h1>
 
+    <p><strong>RF Module Status:</strong> {{ status }}</p>
+
     <form action="/send" method="post">
         <input type="text" name="message" placeholder="Enter your message" required>
         <button type="submit">Send</button>
