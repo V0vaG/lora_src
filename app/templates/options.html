@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Options</title>
+    <title>NRF24L01 Configuration</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f2f2f2;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
             margin: 0;
             padding: 0;
             display: flex;
@@ -15,40 +15,108 @@
             align-items: center;
             height: 100vh;
         }
-        .options-container {
-            width: 400px;
-            height: 300px;
-            background-color: #fff;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            padding: 20px;
+        .container {
+            width: 500px;
+            background-color: #ffffff;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            padding: 30px 40px;
             text-align: center;
         }
-        .options-header {
-            font-size: 24px;
+        h2 {
             margin-bottom: 20px;
+            font-size: 26px;
+            color: #333333;
         }
-        .back-button {
-            padding: 10px 20px;
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #555555;
+        }
+        select, input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        select:focus, input[type="number"]:focus {
+            border-color: #007BFF;
+            outline: none;
+        }
+        .btn {
+            width: 100%;
+            padding: 12px;
             background-color: #007BFF;
-            color: #fff;
+            color: white;
             border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            text-decoration: none;
+            border-radius: 6px;
             font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
         }
-        .back-button:hover {
+        .btn:hover {
             background-color: #0056b3;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 15px;
+            text-decoration: none;
+            color: #007BFF;
+            font-weight: bold;
+        }
+        .back-link:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
-    <div class="options-container">
-        <div class="options-header">Options</div>
-        <!-- Add more settings here -->
-        <a href="/" class="back-button">Back to Chat</a>
+    <div class="container">
+        <h2>NRF24L01 Configuration</h2>
+        <form action="/update_config" method="POST">
+            <div class="form-group">
+                <label for="pa_level">Power Amplifier Level</label>
+                <select id="pa_level" name="pa_level">
+                    <option value="MIN" {{ 'selected' if settings.pa_level == 'MIN' else '' }}>MIN</option>
+                    <option value="LOW" {{ 'selected' if settings.pa_level == 'LOW' else '' }}>LOW</option>
+                    <option value="HIGH" {{ 'selected' if settings.pa_level == 'HIGH' else '' }}>HIGH</option>
+                    <option value="MAX" {{ 'selected' if settings.pa_level == 'MAX' else '' }}>MAX</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="data_rate">Data Rate</label>
+                <select id="data_rate" name="data_rate">
+                    <option value="1MBPS" {{ 'selected' if settings.data_rate == '1MBPS' else '' }}>1 Mbps</option>
+                    <option value="2MBPS" {{ 'selected' if settings.data_rate == '2MBPS' else '' }}>2 Mbps</option>
+                    <option value="250KBPS" {{ 'selected' if settings.data_rate == '250KBPS' else '' }}>250 Kbps</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="channel">Channel (0-125)</label>
+                <input type="number" id="channel" name="channel" min="0" max="125" value="{{ settings.channel }}">
+            </div>
+
+            <div class="form-group">
+                <label for="retry_delay">Retry Delay (0-15)</label>
+                <input type="number" id="retry_delay" name="retry_delay" min="0" max="15" value="{{ settings.retry_delay }}">
+            </div>
+
+            <div class="form-group">
+                <label for="retry_count">Retry Count (0-15)</label>
+                <input type="number" id="retry_count" name="retry_count" min="0" max="15" value="{{ settings.retry_count }}">
+            </div>
+
+            <button type="submit" class="btn">Save Configuration</button>
+        </form>
+        <a href="/" class="back-link">&#8592; Back to Chat</a>
     </div>
 </body>
 </html>
-
