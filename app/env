@@ -1,3 +1,2 @@
-VOLUMES="['/home/$USER/script_files/${proejct}:/root/script_files/${proejct}']"
-VERSION='1.0.1'
-ARGS="--build-arg VERSION=$VERSION"
+DEVICES="devices: ['/dev/spidev0.0:/dev/spidev0.0', '/dev/spidev0.1:/dev/spidev0.1', '/dev/gpiomem:/dev/gpiomem']"
+COMMAND='python3 app.py'
