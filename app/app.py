@@ -75,6 +75,13 @@ def send_message(message):
     
     radio.startListening()
 
+@app.route('/send', methods=['POST'])
+def send():
+    msg = request.form.get('message')
+    if msg:
+        send_message(msg)
+    return redirect(url_for('index'))
+
 @app.route('/')
 def index():
     return render_template('index.html', messages=messages, status=radio_status)
