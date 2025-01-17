@@ -14,6 +14,7 @@ app = Flask(__name__)
 CONFIG_FILE = "radio_config.json"
 
 def save_config():
+    """Save the current radio configuration to a JSON file."""
     pa_levels_reverse = {RF24_PA_MIN: "MIN", RF24_PA_LOW: "LOW", RF24_PA_HIGH: "HIGH", RF24_PA_MAX: "MAX"}
     data_rates_reverse = {RF24_1MBPS: "1MBPS", RF24_2MBPS: "2MBPS", RF24_250KBPS: "250KBPS"}
 
@@ -22,11 +23,17 @@ def save_config():
         "data_rate": data_rates_reverse.get(radio.getDataRate(), "1MBPS"),
         "channel": radio.getChannel(),
         "retry_delay": current_retry_delay,
-        "retry_count": current_retry_count
+        "retry_count": current_retry_count,
+        "pipe_addresses": [
+            pipes[0].decode('utf-8'),  # Convert bytes to string
+            pipes[1].decode('utf-8')
+        ]
     }
+
     with open(CONFIG_FILE, "w") as file:
         json.dump(config, file)
-    print("Configuration saved.")
+    print("Configuration saved:", config)
+
 
 
 def load_config():
@@ -35,6 +42,11 @@ def load_config():
         with open(CONFIG_FILE, "r") as file:
             config = json.load(file)
         print("Configuration loaded:", config)
+
+        # Apply pipe addresses if they exist
+        if "pipe_addresses" in config and len(config["pipe_addresses"]) == 2:
+            pipes[0] = config["pipe_addresses"][0].encode('utf-8')
+            pipes[1] = config["pipe_addresses"][1].encode('utf-8')
         return config
     else:
         print("No configuration file found. Using default settings.")
@@ -119,13 +131,16 @@ def setup_radio():
         radio.setChannel(76)
         radio.setRetries(5, 15)
 
+    # Apply pipe addresses
+    radio.openWritingPipe(pipes[0])
+    radio.openReadingPipe(1, pipes[1])
+
     radio.enableDynamicPayloads()
     radio.flush_rx()
     radio.flush_tx()
-    radio.openWritingPipe(pipes[0])
-    radio.openReadingPipe(1, pipes[1])
     radio.startListening()
     radio_status = "Connected"
+
 
 
 
@@ -200,8 +215,10 @@ def update_config():
     channel = int(request.form.get('channel', 76))
     retry_delay = int(request.form.get('retry_delay', 5))
     retry_count = int(request.form.get('retry_count', 15))
+    pipe_0 = request.form.get('pipe_0', '2Node')
+    pipe_1 = request.form.get('pipe_1', '1Node')
 
-    # Correct mapping of form input to RF24 enums
+    # Mapping of form input to RF24 enums
     pa_levels = {"MIN": RF24_PA_MIN, "LOW": RF24_PA_LOW, "HIGH": RF24_PA_HIGH, "MAX": RF24_PA_MAX}
     data_rates = {"1MBPS": RF24_1MBPS, "2MBPS": RF24_2MBPS, "250KBPS": RF24_250KBPS}
 
@@ -211,9 +228,9 @@ def update_config():
     radio.setChannel(channel)
     radio.setRetries(retry_delay, retry_count)
 
-    # Update global retry settings
-    current_retry_delay = retry_delay
-    current_retry_count = retry_count
+    # Update pipes globally
+    pipes[0] = pipe_0.encode('utf-8')
+    pipes[1] = pipe_1.encode('utf-8')
 
     # Save updated configuration
     save_config()
@@ -222,9 +239,10 @@ def update_config():
     radio.stopListening()
     setup_radio()
 
-    messages.append(f"Updated Config: PA={pa_level}, DataRate={data_rate}, Channel={channel}, Retries=({retry_delay},{retry_count})")
+    messages.append(f"Updated Config: PA={pa_level}, DataRate={data_rate}, Channel={channel}, Pipes=({pipe_0}, {pipe_1}), Retries=({retry_delay},{retry_count})")
 
     return redirect(url_for('index'))
+
 
 
 
