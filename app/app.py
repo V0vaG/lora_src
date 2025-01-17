@@ -13,7 +13,7 @@ app = Flask(__name__)
 
 CONFIG_FILE = "radio_config.json"
 
-def save_config():
+def save_config(writing_pipe, reading_pipes):
     """Save the current radio configuration to a JSON file."""
     pa_levels_reverse = {RF24_PA_MIN: "MIN", RF24_PA_LOW: "LOW", RF24_PA_HIGH: "HIGH", RF24_PA_MAX: "MAX"}
     data_rates_reverse = {RF24_1MBPS: "1MBPS", RF24_2MBPS: "2MBPS", RF24_250KBPS: "250KBPS"}
@@ -24,15 +24,14 @@ def save_config():
         "channel": radio.getChannel(),
         "retry_delay": current_retry_delay,
         "retry_count": current_retry_count,
-        "pipe_addresses": [
-            pipes[0].decode('utf-8'),  # Convert bytes to string
-            pipes[1].decode('utf-8')
-        ]
+        "writing_pipe": writing_pipe,
+        "reading_pipes": reading_pipes
     }
 
     with open(CONFIG_FILE, "w") as file:
         json.dump(config, file)
     print("Configuration saved:", config)
+
 
 
 
@@ -113,33 +112,42 @@ def setup_radio():
     else:
         print("Radio initialized successfully.")
 
-    # Mapping strings back to RF24 enums
-    pa_levels = {"MIN": RF24_PA_MIN, "LOW": RF24_PA_LOW, "HIGH": RF24_PA_HIGH, "MAX": RF24_PA_MAX}
-    data_rates = {"1MBPS": RF24_1MBPS, "2MBPS": RF24_2MBPS, "250KBPS": RF24_250KBPS}
-
     # Load saved configuration
     config = load_config()
+
     if config:
+        # Apply saved configuration
+        pa_levels = {"MIN": RF24_PA_MIN, "LOW": RF24_PA_LOW, "HIGH": RF24_PA_HIGH, "MAX": RF24_PA_MAX}
+        data_rates = {"1MBPS": RF24_1MBPS, "2MBPS": RF24_2MBPS, "250KBPS": RF24_250KBPS}
+
         radio.setPALevel(pa_levels.get(config.get("pa_level", "LOW")))
         radio.setDataRate(data_rates.get(config.get("data_rate", "1MBPS")))
         radio.setChannel(config.get("channel", 76))
         radio.setRetries(config.get("retry_delay", 5), config.get("retry_count", 15))
+
+        # Apply saved Writing Pipe
+        radio.openWritingPipe(config.get("writing_pipe", "2Node").encode('utf-8'))
+
+        # Apply saved Reading Pipes
+        for i, pipe in enumerate(config.get("reading_pipes", ["1Node"] * 6)):
+            radio.openReadingPipe(i + 1, pipe.encode('utf-8'))
+
     else:
-        # Apply default settings if no config is found
+        # Default settings if no config is found
         radio.setPALevel(RF24_PA_LOW)
         radio.setDataRate(RF24_1MBPS)
         radio.setChannel(76)
         radio.setRetries(5, 15)
-
-    # Apply pipe addresses
-    radio.openWritingPipe(pipes[0])
-    radio.openReadingPipe(1, pipes[1])
+        radio.openWritingPipe(b'2Node')
+        for i in range(1, 7):
+            radio.openReadingPipe(i, f'{i}Node'.encode('utf-8'))
 
     radio.enableDynamicPayloads()
     radio.flush_rx()
     radio.flush_tx()
     radio.startListening()
     radio_status = "Connected"
+
 
 
 
@@ -226,10 +234,14 @@ def update_config():
     channel = int(request.form.get('channel', 76))
     retry_delay = int(request.form.get('retry_delay', 5))
     retry_count = int(request.form.get('retry_count', 15))
-    pipe_0 = request.form.get('pipe_0', '2Node')
-    pipe_1 = request.form.get('pipe_1', '1Node')
 
-    # Mapping of form input to RF24 enums
+    # Get Writing Pipe Address
+    pipe_0 = request.form.get('pipe_0', '2Node')
+
+    # Get Reading Pipes 1-6 Addresses
+    reading_pipes = [request.form.get(f'pipe_{i}', f'{i}Node') for i in range(1, 7)]
+
+    # Mapping for Power Amplifier Level and Data Rate
     pa_levels = {"MIN": RF24_PA_MIN, "LOW": RF24_PA_LOW, "HIGH": RF24_PA_HIGH, "MAX": RF24_PA_MAX}
     data_rates = {"1MBPS": RF24_1MBPS, "2MBPS": RF24_2MBPS, "250KBPS": RF24_250KBPS}
 
@@ -239,18 +251,21 @@ def update_config():
     radio.setChannel(channel)
     radio.setRetries(retry_delay, retry_count)
 
-    # Update pipes globally
-    pipes[0] = pipe_0.encode('utf-8')
-    pipes[1] = pipe_1.encode('utf-8')
+    # Set Writing Pipe
+    radio.openWritingPipe(pipe_0.encode('utf-8'))
 
-    # Save updated configuration
-    save_config()
+    # Set Reading Pipes
+    for i, pipe in enumerate(reading_pipes):
+        radio.openReadingPipe(i + 1, pipe.encode('utf-8'))
 
-    # Restart the radio with the new settings
+    # Save Configuration
+    save_config(pipe_0, reading_pipes)
+
+    # Restart the radio to apply changes
     radio.stopListening()
     setup_radio()
 
-    messages.append(f"Updated Config: PA={pa_level}, DataRate={data_rate}, Channel={channel}, Pipes=({pipe_0}, {pipe_1}), Retries=({retry_delay},{retry_count})")
+    messages.append(f"Updated Config: PA={pa_level}, DataRate={data_rate}, Channel={channel}, Retries=({retry_delay},{retry_count}), Pipes=({pipe_0}, {reading_pipes})")
 
     return redirect(url_for('index'))
 
