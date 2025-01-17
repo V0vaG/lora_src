@@ -73,11 +73,27 @@
             background-color: #0056b3;
         }
     </style>
+    <script>
+        function validatePipes() {
+            const pipes = [document.getElementById('pipe_0')];
+            for (let i = 1; i <= 6; i++) {
+                pipes.push(document.getElementById(`pipe_${i}`));
+            }
+            for (let pipe of pipes) {
+                if (pipe.value.length < 3 || pipe.value.length > 5) {
+                    alert('Pipe addresses must be between 3 and 5 characters long.');
+                    pipe.focus();
+                    return false;
+                }
+            }
+            return true;
+        }
+    </script>
 </head>
 <body>
     <div class="container">
         <h2>NRF24L01 Configuration</h2>
-        <form action="/update_config" method="POST">
+        <form action="/update_config" method="POST" onsubmit="return validatePipes();">
             <div class="form-group">
                 <label for="pa_level">Power Amplifier Level</label>
                 <select id="pa_level" name="pa_level">
@@ -113,36 +129,16 @@
             </div>
 
             <div class="form-group">
-                <label for="crc_length">CRC Length</label>
-                <select id="crc_length" name="crc_length">
-                    <option value="Disabled" {{ 'selected' if settings.crc_length == 'Disabled' else '' }}>Disabled</option>
-                    <option value="8-bit" {{ 'selected' if settings.crc_length == '8-bit' else '' }}>8-bit</option>
-                    <option value="16-bit" {{ 'selected' if settings.crc_length == '16-bit' else '' }}>16-bit</option>
-                </select>
-            </div>
-
-            <!-- Writing Pipe Address -->
-            <div class="form-group">
                 <label for="pipe_0">Writing Pipe Address</label>
-                <select id="pipe_0" name="pipe_0">
-                    <option value="2Node" {{ 'selected' if settings.writing_pipe == '2Node' else '' }}>2Node</option>
-                    <option value="1Node" {{ 'selected' if settings.writing_pipe == '1Node' else '' }}>1Node</option>
-                    <option value="Custom" {{ 'selected' if settings.writing_pipe not in ['2Node', '1Node'] else '' }}>Custom</option>
-                </select>
+                <input type="text" id="pipe_0" name="pipe_0" value="{{ settings.writing_pipe }}">
             </div>
 
-            <!-- Reading Pipe Addresses -->
             {% for i in range(6) %}
             <div class="form-group">
                 <label for="pipe_{{ i + 1 }}">Reading Pipe {{ i + 1 }} Address</label>
-                <select id="pipe_{{ i + 1 }}" name="pipe_{{ i + 1 }}">
-                    <option value="1Node" {{ 'selected' if settings.reading_pipes[i] == '1Node' else '' }}>1Node</option>
-                    <option value="2Node" {{ 'selected' if settings.reading_pipes[i] == '2Node' else '' }}>2Node</option>
-                    <option value="Custom" {{ 'selected' if settings.reading_pipes[i] not in ['1Node', '2Node'] else '' }}>Custom</option>
-                </select>
+                <input type="text" id="pipe_{{ i + 1 }}" name="pipe_{{ i + 1 }}" value="{{ settings.reading_pipes[i] }}">
             </div>
             {% endfor %}
-
 
             <div class="btn-container">
                 <button type="submit" class="btn">Save Configuration</button>
