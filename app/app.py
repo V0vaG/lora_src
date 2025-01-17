@@ -4,8 +4,32 @@ import time
 import socket
 import platform
 from RF24 import RF24, RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, RF24_PA_MAX, RF24_1MBPS, RF24_250KBPS, RF24_2MBPS, RF24_CRC_DISABLED, RF24_CRC_8, RF24_CRC_16
+import json
+import os
+
 
 app = Flask(__name__)
+
+
+
+def save_config():
+    config = {
+        "pa_level": radio.getPALevel(),
+        "data_rate": radio.getDataRate(),
+        "channel": radio.getChannel(),
+        "retry_delay": current_retry_delay,
+        "retry_count": current_retry_count
+    }
+    with open(CONFIG_FILE, "w") as file:
+        json.dump(config, file)
+
+def load_config():
+    if os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE, "r") as file:
+            config = json.load(file)
+        return config
+    return None
+
 
 # Get local IP address
 def get_local_ip():
@@ -59,6 +83,7 @@ pipe_addresses = ["2Node", "1Node"]
 
 def setup_radio():
     global radio_status, current_retry_delay, current_retry_count
+
     if not radio.begin():
         radio_status = "Disconnected - Radio hardware is not responding"
         print("Error: Radio hardware is not responding.")
@@ -66,17 +91,27 @@ def setup_radio():
     else:
         print("Radio initialized successfully.")
 
-    radio.setPALevel(RF24_PA_LOW)
-    radio.setDataRate(RF24_1MBPS)
-    radio.setChannel(76)
+    # Load saved configuration if exists
+    config = load_config()
+    if config:
+        radio.setPALevel(config.get("pa_level", RF24_PA_LOW))
+        radio.setDataRate(config.get("data_rate", RF24_1MBPS))
+        radio.setChannel(config.get("channel", 76))
+        radio.setRetries(config.get("retry_delay", 5), config.get("retry_count", 15))
+    else:
+        radio.setPALevel(RF24_PA_LOW)
+        radio.setDataRate(RF24_1MBPS)
+        radio.setChannel(76)
+        radio.setRetries(5, 15)
+
     radio.enableDynamicPayloads()
-    radio.setRetries(current_retry_delay, current_retry_count)
     radio.flush_rx()
     radio.flush_tx()
     radio.openWritingPipe(pipes[0])
     radio.openReadingPipe(1, pipes[1])
     radio.startListening()
     radio_status = "Connected"
+
 
 def receive_messages():
     while True:
@@ -140,37 +175,40 @@ def options():
 
 @app.route('/update_config', methods=['POST'])
 def update_config():
-    global current_retry_delay, current_retry_count, current_crc_length, current_auto_ack, current_dynamic_payloads, current_mode, multiceiver_enabled, pipe_addresses
+    global current_retry_delay, current_retry_count
 
-    # Fetch updated settings from the form
+    # Get new settings from the form
     pa_level = request.form.get('pa_level')
     data_rate = request.form.get('data_rate')
     channel = int(request.form.get('channel', 76))
     retry_delay = int(request.form.get('retry_delay', 5))
     retry_count = int(request.form.get('retry_count', 15))
 
-    # Power Amplifier Levels Mapping
+    # Power Amplifier and Data Rate Mapping
     pa_levels = {"MIN": RF24_PA_MIN, "LOW": RF24_PA_LOW, "HIGH": RF24_PA_HIGH, "MAX": RF24_PA_MAX}
     data_rates = {"1MBPS": RF24_1MBPS, "2MBPS": RF24_2MBPS, "250KBPS": RF24_250KBPS}
 
-    # Apply the new configuration to the radio
+    # Apply new settings
     radio.setPALevel(pa_levels.get(pa_level, RF24_PA_LOW))
     radio.setDataRate(data_rates.get(data_rate, RF24_1MBPS))
     radio.setChannel(channel)
     radio.setRetries(retry_delay, retry_count)
 
-    # Update global values
+    # Update global variables
     current_retry_delay = retry_delay
     current_retry_count = retry_count
 
-    # Reset the radio with new configurations
-    radio.stopListening()
-    setup_radio()  # Reinitialize radio to apply changes
+    # Save configuration
+    save_config()
 
-    # Log the new configuration
+    # Restart the radio with new configuration
+    radio.stopListening()
+    setup_radio()
+
     messages.append(f"Updated Config: PA={pa_level}, DataRate={data_rate}, Channel={channel}, Retries=({retry_delay},{retry_count})")
 
-    return redirect(url_for('index'))  # Redirect back to the chat page
+    return redirect(url_for('index'))
+
 
 
 
