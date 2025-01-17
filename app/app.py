@@ -23,11 +23,13 @@ def save_config():
     }
     with open(CONFIG_FILE, "w") as file:
         json.dump(config, file)
+    print("Configuration saved.")
 
 def load_config():
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, "r") as file:
             config = json.load(file)
+        print("Configuration loaded.")
         return config
     return None
 
@@ -92,7 +94,7 @@ def setup_radio():
     else:
         print("Radio initialized successfully.")
 
-    # Load saved configuration if exists
+    # Load saved configuration if available
     config = load_config()
     if config:
         radio.setPALevel(config.get("pa_level", RF24_PA_LOW))
@@ -100,6 +102,7 @@ def setup_radio():
         radio.setChannel(config.get("channel", 76))
         radio.setRetries(config.get("retry_delay", 5), config.get("retry_count", 15))
     else:
+        # Apply default settings if no config is found
         radio.setPALevel(RF24_PA_LOW)
         radio.setDataRate(RF24_1MBPS)
         radio.setChannel(76)
@@ -112,6 +115,7 @@ def setup_radio():
     radio.openReadingPipe(1, pipes[1])
     radio.startListening()
     radio_status = "Connected"
+
 
 
 def receive_messages():
@@ -178,24 +182,20 @@ def options():
 def update_config():
     global current_retry_delay, current_retry_count
 
-    # Get new settings from the form
+    # Get updated settings from the form
     pa_level = request.form.get('pa_level')
     data_rate = request.form.get('data_rate')
     channel = int(request.form.get('channel', 76))
     retry_delay = int(request.form.get('retry_delay', 5))
     retry_count = int(request.form.get('retry_count', 15))
 
-    # Correct Power Amplifier Levels and Data Rate Mapping
+    # Mapping for PA Level and Data Rate
     pa_levels = {"MIN": RF24_PA_MIN, "LOW": RF24_PA_LOW, "HIGH": RF24_PA_HIGH, "MAX": RF24_PA_MAX}
-    data_rates = {
-        "1MBPS": RF24_1MBPS,
-        "2MBPS": RF24_2MBPS,
-        "250KBPS": RF24_250KBPS
-    }
+    data_rates = {"1MBPS": RF24_1MBPS, "2MBPS": RF24_2MBPS, "250KBPS": RF24_250KBPS}
 
-    # Apply the new settings
-    radio.setPALevel(pa_levels.get(pa_level, RF24_PA_LOW))  # Correct PA Level
-    radio.setDataRate(data_rates.get(data_rate, RF24_1MBPS))  # Correct Data Rate
+    # Apply new configuration
+    radio.setPALevel(pa_levels.get(pa_level, RF24_PA_LOW))
+    radio.setDataRate(data_rates.get(data_rate, RF24_1MBPS))
     radio.setChannel(channel)
     radio.setRetries(retry_delay, retry_count)
 
@@ -203,13 +203,17 @@ def update_config():
     current_retry_delay = retry_delay
     current_retry_count = retry_count
 
-    # Restart the radio with new settings
+    # Save configuration before restarting
+    save_config()
+
+    # Restart the radio with the new settings
     radio.stopListening()
     setup_radio()
 
     messages.append(f"Updated Config: PA={pa_level}, DataRate={data_rate}, Channel={channel}, Retries=({retry_delay},{retry_count})")
 
     return redirect(url_for('index'))
+
 
 
 
