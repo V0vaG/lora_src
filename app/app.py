@@ -142,6 +142,7 @@ def options():
 def update_config():
     global current_retry_delay, current_retry_count, current_crc_length, current_auto_ack, current_dynamic_payloads, current_mode, multiceiver_enabled, pipe_addresses
 
+    # Get updated form data
     pa_level = request.form.get('pa_level')
     data_rate = request.form.get('data_rate')
     channel = int(request.form.get('channel', 76))
@@ -153,8 +154,10 @@ def update_config():
     mode = request.form.get('mode')
     multiceiver = request.form.get('multiceiver') == 'on'
 
+    # Update pipe addresses
     pipe_addresses = [request.form.get(f'pipe_{i}') for i in range(2)]
 
+    # Apply settings
     pa_levels = {"MIN": RF24_PA_MIN, "LOW": RF24_PA_LOW, "HIGH": RF24_PA_HIGH, "MAX": RF24_PA_MAX}
     data_rates = {"1MBPS": RF24_1MBPS, "2MBPS": RF24_2MBPS, "250KBPS": RF24_250KBPS}
     crc_lengths = {"Disabled": RF24_CRC_DISABLED, "8-bit": RF24_CRC_8, "16-bit": RF24_CRC_16}
@@ -169,13 +172,14 @@ def update_config():
     current_mode = mode
     multiceiver_enabled = multiceiver
 
-    # Restart the radio with new configuration
+    # Reset the radio with new configurations
     radio.stopListening()
-    setup_radio()  # <- Reset the radio with updated settings
+    setup_radio()  # <-- Re-initialize the radio
 
     messages.append(f"Updated Config: PA={pa_level}, DataRate={data_rate}, Channel={channel}, CRC={crc_length}, Auto-ACK={'Enabled' if auto_ack else 'Disabled'}, Dynamic Payloads={'Enabled' if dynamic_payloads else 'Disabled'}, Mode={mode}, Multiceiver={'Enabled' if multiceiver else 'Disabled'}, Pipes={pipe_addresses}")
 
-    return redirect(url_for('index'))
+    return redirect(url_for('index'))  # Redirect back to chat
+
 
 def start_receiver():
     threading.Thread(target=receive_messages, daemon=True).start()

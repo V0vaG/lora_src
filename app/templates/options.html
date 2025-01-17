@@ -50,6 +50,11 @@
             border-color: #007BFF;
             outline: none;
         }
+        .btn-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
         .btn {
             width: 100%;
             padding: 12px;
@@ -102,31 +107,11 @@
                 <label for="retry_count">Retry Count (0-15)</label>
                 <input type="number" id="retry_count" name="retry_count" min="0" max="15" value="{{ settings.retry_count }}">
             </div>
-            <div class="form-group">
-                <label for="crc_length">CRC Length</label>
-                <select id="crc_length" name="crc_length">
-                    <option value="Disabled" {{ 'selected' if settings.crc_length == 'Disabled' else '' }}>Disabled</option>
-                    <option value="8-bit" {{ 'selected' if settings.crc_length == '8-bit' else '' }}>8-bit</option>
-                    <option value="16-bit" {{ 'selected' if settings.crc_length == '16-bit' else '' }}>16-bit</option>
-                </select>
+            <div class="btn-container">
+                <button type="submit" class="btn">Save Configuration</button>
+                <a href="/" class="btn">&#8592; Back to Chat</a>
             </div>
-            <div class="form-group">
-                <label><input type="checkbox" name="auto_ack" {{ 'checked' if settings.auto_ack else '' }}> Auto ACK</label>
-            </div>
-            <div class="form-group">
-                <label><input type="checkbox" name="dynamic_payloads" {{ 'checked' if settings.dynamic_payloads else '' }}> Dynamic Payloads</label>
-            </div>
-            <div class="form-group">
-                <label for="pipe_0">Writing Pipe Address</label>
-                <input type="text" id="pipe_0" name="pipe_0" value="{{ settings.pipe_addresses[0] }}">
-            </div>
-            <div class="form-group">
-                <label for="pipe_1">Reading Pipe Address</label>
-                <input type="text" id="pipe_1" name="pipe_1" value="{{ settings.pipe_addresses[1] }}">
-            </div>
-            <button type="submit" class="btn">Save Configuration</button>
         </form>
-        <a href="/" class="btn">&#8592; Back to Chat</a>
     </div>
 </body>
 </html>
