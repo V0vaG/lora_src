@@ -211,29 +211,34 @@ def options():
     # Mapping for display
     pa_levels = {RF24_PA_MIN: "MIN", RF24_PA_LOW: "LOW", RF24_PA_HIGH: "HIGH", RF24_PA_MAX: "MAX"}
     data_rates = {RF24_1MBPS: "1MBPS", RF24_2MBPS: "2MBPS", RF24_250KBPS: "250KBPS"}
+    crc_lengths = {"Disabled": "Disabled", "8-bit": "8-bit", "16-bit": "16-bit"}
 
     # Load saved configuration
     config = load_config()
 
-    # If no saved config exists, use the current radio settings
     if config:
+        # If config exists, load all settings including 6 reading pipes
         current_settings = {
             'pa_level': config.get('pa_level', "LOW"),
             'data_rate': config.get('data_rate', "1MBPS"),
             'channel': config.get('channel', 76),
             'retry_delay': config.get('retry_delay', 5),
             'retry_count': config.get('retry_count', 15),
-            'pipe_addresses': config.get('pipe_addresses', ["2Node", "1Node"])
+            'crc_length': config.get('crc_length', "16-bit"),
+            'writing_pipe': config.get('writing_pipe', "2Node"),
+            'reading_pipes': config.get('reading_pipes', ["1Node"] * 6)
         }
     else:
-        # Fallback to radio's current settings
+        # Fallback to current radio settings if no config exists
         current_settings = {
             'pa_level': pa_levels.get(radio.getPALevel(), "LOW"),
             'data_rate': data_rates.get(radio.getDataRate(), "1MBPS"),
             'channel': radio.getChannel(),
             'retry_delay': current_retry_delay,
             'retry_count': current_retry_count,
-            'pipe_addresses': [pipes[0].decode('utf-8'), pipes[1].decode('utf-8')]
+            'crc_length': "16-bit",  # Default CRC
+            'writing_pipe': pipes[0].decode('utf-8'),
+            'reading_pipes': [pipes[i].decode('utf-8') if i < len(pipes) else "1Node" for i in range(1, 7)]
         }
 
     return render_template('options.html', settings=current_settings)

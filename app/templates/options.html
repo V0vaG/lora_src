@@ -121,25 +121,28 @@
                 </select>
             </div>
 
+            <!-- Writing Pipe Address -->
             <div class="form-group">
                 <label for="pipe_0">Writing Pipe Address</label>
                 <select id="pipe_0" name="pipe_0">
-                    <option value="2Node">2Node</option>
-                    <option value="1Node">1Node</option>
-                    <option value="Custom">Custom</option>
+                    <option value="2Node" {{ 'selected' if settings.writing_pipe == '2Node' else '' }}>2Node</option>
+                    <option value="1Node" {{ 'selected' if settings.writing_pipe == '1Node' else '' }}>1Node</option>
+                    <option value="Custom" {{ 'selected' if settings.writing_pipe not in ['2Node', '1Node'] else '' }}>Custom</option>
                 </select>
             </div>
 
-            {% for i in range(1, 7) %}
+            <!-- Reading Pipe Addresses -->
+            {% for i in range(6) %}
             <div class="form-group">
-                <label for="pipe_{{ i }}">Reading Pipe {{ i }} Address</label>
-                <select id="pipe_{{ i }}" name="pipe_{{ i }}">
-                    <option value="1Node">1Node</option>
-                    <option value="2Node">2Node</option>
-                    <option value="Custom">Custom</option>
+                <label for="pipe_{{ i + 1 }}">Reading Pipe {{ i + 1 }} Address</label>
+                <select id="pipe_{{ i + 1 }}" name="pipe_{{ i + 1 }}">
+                    <option value="1Node" {{ 'selected' if settings.reading_pipes[i] == '1Node' else '' }}>1Node</option>
+                    <option value="2Node" {{ 'selected' if settings.reading_pipes[i] == '2Node' else '' }}>2Node</option>
+                    <option value="Custom" {{ 'selected' if settings.reading_pipes[i] not in ['1Node', '2Node'] else '' }}>Custom</option>
                 </select>
             </div>
             {% endfor %}
+
 
             <div class="btn-container">
                 <button type="submit" class="btn">Save Configuration</button>
