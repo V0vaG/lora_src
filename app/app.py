@@ -247,40 +247,53 @@ def options():
     return render_template('options.html', settings=current_settings)
 
 
-
 @app.route('/update_config', methods=['POST'])
 def update_config():
     global current_retry_delay, current_retry_count
 
-    pa_level = request.form.get('pa_level')
-    data_rate = request.form.get('data_rate')
-    channel = int(request.form.get('channel', 76))
-    retry_delay = int(request.form.get('retry_delay', 5))
-    retry_count = int(request.form.get('retry_count', 15))
+    try:
+        # Get updated settings from the form
+        pa_level = request.form.get('pa_level', 'LOW')
+        data_rate = request.form.get('data_rate', '1MBPS')
+        channel = int(request.form.get('channel', 76))
+        retry_delay = int(request.form.get('retry_delay', 5))
+        retry_count = int(request.form.get('retry_count', 15))
 
-    pipe_0 = request.form.get('pipe_0', '2Node')
-    reading_pipes = [request.form.get(f'pipe_{i}', f'{i}Node') for i in range(1, 7)]
+        # Get Writing Pipe Address
+        pipe_0 = request.form.get('pipe_0', '2Node')
 
-    allow_remote_control = request.form.get('allow_remote_control') == 'on'  # Get toggle value
+        # Get Reading Pipes 1-6 Addresses
+        reading_pipes = [request.form.get(f'pipe_{i}', f'{i}Node') for i in range(1, 7)]
 
-    pa_levels = {"MIN": RF24_PA_MIN, "LOW": RF24_PA_LOW, "HIGH": RF24_PA_HIGH, "MAX": RF24_PA_MAX}
-    data_rates = {"1MBPS": RF24_1MBPS, "2MBPS": RF24_2MBPS, "250KBPS": RF24_250KBPS}
+        # Get the state of the Allow Remote Control toggle
+        allow_remote_control = 'allow_remote_control' in request.form  # Checkbox handling
 
-    radio.setPALevel(pa_levels.get(pa_level, RF24_PA_LOW))
-    radio.setDataRate(data_rates.get(data_rate, RF24_1MBPS))
-    radio.setChannel(channel)
-    radio.setRetries(retry_delay, retry_count)
+        # Mapping for Power Amplifier Level and Data Rate
+        pa_levels = {"MIN": RF24_PA_MIN, "LOW": RF24_PA_LOW, "HIGH": RF24_PA_HIGH, "MAX": RF24_PA_MAX}
+        data_rates = {"1MBPS": RF24_1MBPS, "2MBPS": RF24_2MBPS, "250KBPS": RF24_250KBPS}
 
-    radio.openWritingPipe(pipe_0.encode('utf-8'))
-    for i, pipe in enumerate(reading_pipes):
-        radio.openReadingPipe(i + 1, pipe.encode('utf-8'))
+        # Apply new configuration to the radio
+        radio.setPALevel(pa_levels.get(pa_level, RF24_PA_LOW))
+        radio.setDataRate(data_rates.get(data_rate, RF24_1MBPS))
+        radio.setChannel(channel)
+        radio.setRetries(retry_delay, retry_count)
 
-    # Save the updated configuration with the remote control setting
-    save_config(pipe_0, reading_pipes, allow_remote_control)
+        radio.openWritingPipe(pipe_0.encode('utf-8'))
+        for i, pipe in enumerate(reading_pipes):
+            radio.openReadingPipe(i + 1, pipe.encode('utf-8'))
 
-    messages.append(f"Settings updated. Remote Control: {'ON' if allow_remote_control else 'OFF'}")
+        # Save the updated configuration
+        save_config(pipe_0, reading_pipes, allow_remote_control)
+
+        messages.append(f"Settings updated. Remote Control: {'ON' if allow_remote_control else 'OFF'}")
+
+    except Exception as e:
+        error_msg = f"Error updating configuration: {str(e)}"
+        messages.append(error_msg)
+        print(error_msg)
 
     return redirect(url_for('index'))
+
 
 
 def start_receiver():

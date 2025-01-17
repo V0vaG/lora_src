@@ -72,6 +72,46 @@
         .btn:hover {
             background-color: #0056b3;
         }
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #007BFF;
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
     </style>
     <script>
         function validatePipes() {
@@ -112,12 +152,7 @@
                     <option value="250KBPS" {{ 'selected' if settings.data_rate == '250KBPS' else '' }}>250 Kbps</option>
                 </select>
             </div>
-            <form action="{{ url_for('update_config') }}" method="POST">
-                <label for="allow_remote_control">Allow Remote Control:</label>
-                <input type="checkbox" id="allow_remote_control" name="allow_remote_control" {% if settings.allow_remote_control %}checked{% endif %}>
-                <br><br>
-                <button type="submit">Save Settings</button>
-            </form>
+
             <div class="form-group">
                 <label for="channel">Channel (0-125)</label>
                 <input type="number" id="channel" name="channel" min="0" max="125" value="{{ settings.channel }}">
@@ -144,6 +179,15 @@
                 <input type="text" id="pipe_{{ i + 1 }}" name="pipe_{{ i + 1 }}" value="{{ settings.reading_pipes[i] }}">
             </div>
             {% endfor %}
+
+            <!-- Allow Remote Control Toggle -->
+            <div class="form-group">
+                <label for="allow_remote_control">Allow Remote Control</label><br>
+                <label class="switch">
+                    <input type="checkbox" id="allow_remote_control" name="allow_remote_control" {% if settings.allow_remote_control %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </div>
 
             <div class="btn-container">
                 <button type="submit" class="btn">Save Configuration</button>
