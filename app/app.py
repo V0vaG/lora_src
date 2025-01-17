@@ -142,43 +142,36 @@ def options():
 def update_config():
     global current_retry_delay, current_retry_count, current_crc_length, current_auto_ack, current_dynamic_payloads, current_mode, multiceiver_enabled, pipe_addresses
 
-    # Get updated form data
+    # Fetch updated settings from the form
     pa_level = request.form.get('pa_level')
     data_rate = request.form.get('data_rate')
     channel = int(request.form.get('channel', 76))
     retry_delay = int(request.form.get('retry_delay', 5))
     retry_count = int(request.form.get('retry_count', 15))
-    crc_length = request.form.get('crc_length')
-    auto_ack = request.form.get('auto_ack') == 'on'
-    dynamic_payloads = request.form.get('dynamic_payloads') == 'on'
-    mode = request.form.get('mode')
-    multiceiver = request.form.get('multiceiver') == 'on'
 
-    # Update pipe addresses
-    pipe_addresses = [request.form.get(f'pipe_{i}') for i in range(2)]
-
-    # Apply settings
+    # Power Amplifier Levels Mapping
     pa_levels = {"MIN": RF24_PA_MIN, "LOW": RF24_PA_LOW, "HIGH": RF24_PA_HIGH, "MAX": RF24_PA_MAX}
     data_rates = {"1MBPS": RF24_1MBPS, "2MBPS": RF24_2MBPS, "250KBPS": RF24_250KBPS}
-    crc_lengths = {"Disabled": RF24_CRC_DISABLED, "8-bit": RF24_CRC_8, "16-bit": RF24_CRC_16}
 
+    # Apply the new configuration to the radio
     radio.setPALevel(pa_levels.get(pa_level, RF24_PA_LOW))
     radio.setDataRate(data_rates.get(data_rate, RF24_1MBPS))
     radio.setChannel(channel)
     radio.setRetries(retry_delay, retry_count)
-    current_crc_length = crc_lengths.get(crc_length, RF24_CRC_16)
-    current_auto_ack = auto_ack
-    current_dynamic_payloads = dynamic_payloads
-    current_mode = mode
-    multiceiver_enabled = multiceiver
+
+    # Update global values
+    current_retry_delay = retry_delay
+    current_retry_count = retry_count
 
     # Reset the radio with new configurations
     radio.stopListening()
-    setup_radio()  # <-- Re-initialize the radio
+    setup_radio()  # Reinitialize radio to apply changes
 
-    messages.append(f"Updated Config: PA={pa_level}, DataRate={data_rate}, Channel={channel}, CRC={crc_length}, Auto-ACK={'Enabled' if auto_ack else 'Disabled'}, Dynamic Payloads={'Enabled' if dynamic_payloads else 'Disabled'}, Mode={mode}, Multiceiver={'Enabled' if multiceiver else 'Disabled'}, Pipes={pipe_addresses}")
+    # Log the new configuration
+    messages.append(f"Updated Config: PA={pa_level}, DataRate={data_rate}, Channel={channel}, Retries=({retry_delay},{retry_count})")
 
-    return redirect(url_for('index'))  # Redirect back to chat
+    return redirect(url_for('index'))  # Redirect back to the chat page
+
 
 
 def start_receiver():
