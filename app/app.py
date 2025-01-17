@@ -11,6 +11,7 @@ import os
 app = Flask(__name__)
 
 
+CONFIG_FILE = "radio_config.json"
 
 def save_config():
     config = {
