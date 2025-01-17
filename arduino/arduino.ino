@@ -16,7 +16,7 @@ void setup() {
   radio.begin();
   radio.setPALevel(RF24_PA_LOW);
   radio.setDataRate(RF24_1MBPS);
-  radio.setChannel(76);
+  radio.setChannel(77);
 
   radio.openWritingPipe(pipes[1]);  // Send to Raspberry Pi
   radio.openReadingPipe(1, pipes[0]);  // Listen to Raspberry Pi
@@ -63,4 +63,3 @@ void loop() {
     radio.startListening();  // Resume listening for new messages
   }
 }
-

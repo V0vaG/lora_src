@@ -1,9 +1,39 @@
 from flask import Flask, render_template, request, redirect, url_for
 import threading
 import time
+import socket
+import platform
 from RF24 import RF24, RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, RF24_PA_MAX, RF24_1MBPS, RF24_250KBPS, RF24_2MBPS, RF24_CRC_DISABLED, RF24_CRC_8, RF24_CRC_16
 
 app = Flask(__name__)
+
+# Get local IP address
+def get_local_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(('10.255.255.255', 1))
+        IP = s.getsockname()[0]
+    except Exception:
+        IP = '127.0.0.1'
+    finally:
+        s.close()
+    return IP
+
+# Detect Raspberry Pi model
+def get_pi_model():
+    try:
+        with open('/proc/device-tree/model') as f:
+            model = f.read()
+            if 'Raspberry Pi 4' in model:
+                return 'Raspberry Pi 4'
+            elif 'Raspberry Pi 3' in model:
+                return 'Raspberry Pi 3'
+    except FileNotFoundError:
+        pass
+    return platform.machine()
+
+local_ip = get_local_ip()
+pi_model = get_pi_model()
 
 # Radio CE and CSN pins
 CE_PIN = 22  # GPIO22
@@ -75,16 +105,16 @@ def send_message(message):
     
     radio.startListening()
 
+@app.route('/')
+def index():
+    return render_template('index.html', messages=messages, status=radio_status, local_ip=local_ip, pi_model=pi_model)
+
 @app.route('/send', methods=['POST'])
 def send():
     msg = request.form.get('message')
     if msg:
         send_message(msg)
     return redirect(url_for('index'))
-
-@app.route('/')
-def index():
-    return render_template('index.html', messages=messages, status=radio_status)
 
 @app.route('/options.html')
 def options():
