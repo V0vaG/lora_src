@@ -169,9 +169,13 @@ def update_config():
     current_mode = mode
     multiceiver_enabled = multiceiver
 
+    # Restart the radio with new configuration
+    radio.stopListening()
+    setup_radio()  # <- Reset the radio with updated settings
+
     messages.append(f"Updated Config: PA={pa_level}, DataRate={data_rate}, Channel={channel}, CRC={crc_length}, Auto-ACK={'Enabled' if auto_ack else 'Disabled'}, Dynamic Payloads={'Enabled' if dynamic_payloads else 'Disabled'}, Mode={mode}, Multiceiver={'Enabled' if multiceiver else 'Disabled'}, Pipes={pipe_addresses}")
 
-    return redirect(url_for('options'))
+    return redirect(url_for('index'))
 
 def start_receiver():
     threading.Thread(target=receive_messages, daemon=True).start()
