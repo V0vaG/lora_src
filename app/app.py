@@ -34,7 +34,6 @@ def save_config(writing_pipe, reading_pipes):
 
 
 
-
 def load_config():
     """Load the saved radio configuration from the JSON file."""
     if os.path.exists(CONFIG_FILE):
