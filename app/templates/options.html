@@ -13,38 +13,43 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
         }
         .container {
-            width: 600px;
+            width: 90%;
+            max-width: 400px;
             background-color: #ffffff;
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
             border-radius: 12px;
-            padding: 30px 40px;
+            padding: 20px;
             text-align: center;
         }
         h2 {
             margin-bottom: 20px;
-            font-size: 26px;
+            font-size: 22px;
             color: #333333;
         }
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             text-align: left;
         }
         label {
             display: block;
             font-weight: bold;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
             color: #555555;
         }
         select, input[type="number"], input[type="text"] {
             width: 100%;
-            padding: 10px;
+            padding: 8px;
             border: 1px solid #ccc;
             border-radius: 6px;
             font-size: 14px;
             transition: border-color 0.3s;
+        }
+        input.pipe-address {
+            width: 50px;
+            text-align: center;
         }
         select:focus, input[type="number"]:focus, input[type="text"]:focus {
             border-color: #007BFF;
@@ -52,12 +57,11 @@
         }
         .btn-container {
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
             gap: 10px;
         }
         .btn {
-            width: 100%;
-            padding: 12px;
+            padding: 10px;
             background-color: #007BFF;
             color: white;
             border: none;
@@ -65,7 +69,6 @@
             font-size: 16px;
             cursor: pointer;
             transition: background-color 0.3s;
-            text-align: center;
             text-decoration: none;
             display: inline-block;
         }
@@ -130,13 +133,13 @@
 
             <div class="form-group">
                 <label for="pipe_0">Writing Pipe Address</label>
-                <input type="text" id="pipe_0" name="pipe_0" value="{{ settings.writing_pipe }}">
+                <input type="text" id="pipe_0" name="pipe_0" maxlength="5" class="pipe-address" value="{{ settings.writing_pipe }}">
             </div>
 
             {% for i in range(6) %}
             <div class="form-group">
                 <label for="pipe_{{ i + 1 }}">Reading Pipe {{ i + 1 }} Address</label>
-                <input type="text" id="pipe_{{ i + 1 }}" name="pipe_{{ i + 1 }}" value="{{ settings.reading_pipes[i] }}">
+                <input type="text" id="pipe_{{ i + 1 }}" name="pipe_{{ i + 1 }}" maxlength="5" class="pipe-address" value="{{ settings.reading_pipes[i] }}">
             </div>
             {% endfor %}
 
