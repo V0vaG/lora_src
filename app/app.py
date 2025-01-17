@@ -13,7 +13,7 @@ app = Flask(__name__)
 
 CONFIG_FILE = "radio_config.json"
 
-def save_config(writing_pipe, reading_pipes):
+def save_config(writing_pipe, reading_pipes, allow_remote_control=False):
     """Save the current radio configuration to a JSON file."""
     pa_levels_reverse = {RF24_PA_MIN: "MIN", RF24_PA_LOW: "LOW", RF24_PA_HIGH: "HIGH", RF24_PA_MAX: "MAX"}
     data_rates_reverse = {RF24_1MBPS: "1MBPS", RF24_2MBPS: "2MBPS", RF24_250KBPS: "250KBPS"}
@@ -21,11 +21,12 @@ def save_config(writing_pipe, reading_pipes):
     config = {
         "pa_level": pa_levels_reverse.get(radio.getPALevel(), "LOW"),
         "data_rate": data_rates_reverse.get(radio.getDataRate(), "1MBPS"),
-        "channel": radio.getChannel(),  # Updated channel is saved here
+        "channel": radio.getChannel(),
         "retry_delay": current_retry_delay,
         "retry_count": current_retry_count,
         "writing_pipe": writing_pipe,
-        "reading_pipes": reading_pipes
+        "reading_pipes": reading_pipes,
+        "allow_remote_control": allow_remote_control  # New toggle setting
     }
 
     with open(CONFIG_FILE, "w") as file:
@@ -40,10 +41,7 @@ def load_config():
             config = json.load(file)
         print("Configuration loaded:", config)
 
-        # Ensure all reading pipes are loaded
         reading_pipes = config.get("reading_pipes", ["1Node"] * 6)
-
-        # Fill missing pipes if necessary
         while len(reading_pipes) < 6:
             reading_pipes.append("1Node")
 
@@ -54,7 +52,8 @@ def load_config():
             "retry_delay": config.get("retry_delay", 5),
             "retry_count": config.get("retry_count", 15),
             "writing_pipe": config.get("writing_pipe", "2Node"),
-            "reading_pipes": reading_pipes
+            "reading_pipes": reading_pipes,
+            "allow_remote_control": config.get("allow_remote_control", False)  # Default OFF
         }
     else:
         print("No configuration file found. Using default settings.")
@@ -65,7 +64,8 @@ def load_config():
             "retry_delay": 5,
             "retry_count": 15,
             "writing_pipe": "2Node",
-            "reading_pipes": ["1Node"] * 6
+            "reading_pipes": ["1Node"] * 6,
+            "allow_remote_control": False
         }
 
 
@@ -81,6 +81,7 @@ def get_local_ip():
         s.close()
     return IP
 
+
 # Detect Raspberry Pi model
 def get_pi_model():
     try:
@@ -93,6 +94,7 @@ def get_pi_model():
     except FileNotFoundError:
         pass
     return platform.machine()
+
 
 local_ip = get_local_ip()
 pi_model = get_pi_model()
@@ -175,39 +177,25 @@ def receive_messages():
                     received_payload = radio.read(length)
                     try:
                         message = received_payload.decode('utf-8').rstrip('\x00')
-                        messages.append(f"Received: {message}")
+                        config = load_config()
 
-                        # Auto-reply if the message starts with '/test'
-                        if message.startswith('/test'):
-                            response = message[len('/test'):].strip()
-                            send_message(response)
-                        elif message.startswith('/c'):
-                            channel_param = message[len('/c'):].strip()
-                            if channel_param.isdigit():
-                                new_channel = int(channel_param)
-                                if 0 <= new_channel <= 125:
-                                    response = f"Channel changed to {new_channel}"
-                                    messages.append(response)
-                                    send_message(response)
-                                
-                                    radio.stopListening()
-                                    radio.setChannel(new_channel)
-                                    radio.startListening()
-                                    
-                                    # Save the updated config with the new channel
-                                    config = load_config()
-                                    save_config(config["writing_pipe"], config["reading_pipes"])
-
-
-                                else:
-                                    error_msg = "Invalid channel. Must be between 0 and 125."
-                                    messages.append(error_msg)
-                                    send_message(error_msg)
-                            else:
-                                error_msg = "Invalid command format. Use '/c <channel_number>'."
-                                messages.append(error_msg)
-                                send_message(error_msg)
-
+                        # Only process commands if remote control is allowed
+                        if config.get("allow_remote_control", False):
+                            if message.startswith('/test'):
+                                response = message[len('/test'):].strip()
+                                send_message(response)
+                            elif message.startswith('/c'):
+                                channel_param = message[len('/c'):].strip()
+                                if channel_param.isdigit():
+                                    new_channel = int(channel_param)
+                                    if 0 <= new_channel <= 125:
+                                        radio.stopListening()
+                                        radio.setChannel(new_channel)
+                                        radio.startListening()
+                                        save_config(config["writing_pipe"], config["reading_pipes"], config["allow_remote_control"])
+                                        send_message(f"Channel changed to {new_channel}")
+                        else:
+                            messages.append("Remote control is disabled.")
                     except UnicodeDecodeError:
                         messages.append("Received: [Corrupted/Invalid data]")
         time.sleep(0.5)
@@ -240,83 +228,57 @@ def send():
 @app.route('/options.html')
 def options():
     # Mapping for display
-    pa_levels = {
-        RF24_PA_MIN: "MIN",
-        RF24_PA_LOW: "LOW",
-        RF24_PA_HIGH: "HIGH",
-        RF24_PA_MAX: "MAX"
-    }
-    data_rates = {
-        RF24_1MBPS: "1MBPS",
-        RF24_2MBPS: "2MBPS",
-        RF24_250KBPS: "250KBPS"
-    }
-    crc_lengths = {
-        "Disabled": "Disabled",
-        "8-bit": "8-bit",
-        "16-bit": "16-bit"
-    }
-
-    # Load the latest saved configuration
+    pa_levels = {RF24_PA_MIN: "MIN", RF24_PA_LOW: "LOW", RF24_PA_HIGH: "HIGH", RF24_PA_MAX: "MAX"}
+    data_rates = {RF24_1MBPS: "1MBPS", RF24_2MBPS: "2MBPS", RF24_250KBPS: "250KBPS"}
+    
     config = load_config()
 
-    # Load configuration if it exists
     current_settings = {
         'pa_level': config.get('pa_level', "LOW"),
         'data_rate': config.get('data_rate', "1MBPS"),
         'channel': config.get('channel', 76),
         'retry_delay': config.get('retry_delay', 5),
         'retry_count': config.get('retry_count', 15),
-        'crc_length': config.get('crc_length', "16-bit"),
         'writing_pipe': config.get('writing_pipe', "2Node"),
-        'reading_pipes': config.get('reading_pipes', ["1Node"] * 6)
+        'reading_pipes': config.get('reading_pipes', ["1Node"] * 6),
+        'allow_remote_control': config.get('allow_remote_control', False)  # Pass to template
     }
 
     return render_template('options.html', settings=current_settings)
+
 
 
 @app.route('/update_config', methods=['POST'])
 def update_config():
     global current_retry_delay, current_retry_count
 
-    # Get updated settings from the form
     pa_level = request.form.get('pa_level')
     data_rate = request.form.get('data_rate')
     channel = int(request.form.get('channel', 76))
     retry_delay = int(request.form.get('retry_delay', 5))
     retry_count = int(request.form.get('retry_count', 15))
 
-    # Get Writing Pipe Address
     pipe_0 = request.form.get('pipe_0', '2Node')
-
-    # Get Reading Pipes 1-6 Addresses
     reading_pipes = [request.form.get(f'pipe_{i}', f'{i}Node') for i in range(1, 7)]
 
-    # Mapping for Power Amplifier Level and Data Rate
+    allow_remote_control = request.form.get('allow_remote_control') == 'on'  # Get toggle value
+
     pa_levels = {"MIN": RF24_PA_MIN, "LOW": RF24_PA_LOW, "HIGH": RF24_PA_HIGH, "MAX": RF24_PA_MAX}
     data_rates = {"1MBPS": RF24_1MBPS, "2MBPS": RF24_2MBPS, "250KBPS": RF24_250KBPS}
 
-    # Apply new configuration
     radio.setPALevel(pa_levels.get(pa_level, RF24_PA_LOW))
     radio.setDataRate(data_rates.get(data_rate, RF24_1MBPS))
     radio.setChannel(channel)
     radio.setRetries(retry_delay, retry_count)
 
-    # Set Writing Pipe
     radio.openWritingPipe(pipe_0.encode('utf-8'))
-
-    # Set Reading Pipes
     for i, pipe in enumerate(reading_pipes):
         radio.openReadingPipe(i + 1, pipe.encode('utf-8'))
 
-    # Save Configuration
-    save_config(pipe_0, reading_pipes)
+    # Save the updated configuration with the remote control setting
+    save_config(pipe_0, reading_pipes, allow_remote_control)
 
-    # Restart the radio to apply changes
-    radio.stopListening()
-    setup_radio()
-
-    messages.append(f"Updated Config: PA={pa_level}, DataRate={data_rate}, Channel={channel}, Retries=({retry_delay},{retry_count}), Pipes=({pipe_0}, {reading_pipes})")
+    messages.append(f"Settings updated. Remote Control: {'ON' if allow_remote_control else 'OFF'}")
 
     return redirect(url_for('index'))
 

@@ -112,7 +112,12 @@
                     <option value="250KBPS" {{ 'selected' if settings.data_rate == '250KBPS' else '' }}>250 Kbps</option>
                 </select>
             </div>
-
+            <form action="{{ url_for('update_config') }}" method="POST">
+                <label for="allow_remote_control">Allow Remote Control:</label>
+                <input type="checkbox" id="allow_remote_control" name="allow_remote_control" {% if settings.allow_remote_control %}checked{% endif %}>
+                <br><br>
+                <button type="submit">Save Settings</button>
+            </form>
             <div class="form-group">
                 <label for="channel">Channel (0-125)</label>
                 <input type="number" id="channel" name="channel" min="0" max="125" value="{{ settings.channel }}">
