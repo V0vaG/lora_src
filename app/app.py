@@ -185,25 +185,36 @@ def send():
 
 @app.route('/options.html')
 def options():
+    # Mapping for display
     pa_levels = {RF24_PA_MIN: "MIN", RF24_PA_LOW: "LOW", RF24_PA_HIGH: "HIGH", RF24_PA_MAX: "MAX"}
     data_rates = {RF24_1MBPS: "1MBPS", RF24_2MBPS: "2MBPS", RF24_250KBPS: "250KBPS"}
-    crc_lengths = {RF24_CRC_DISABLED: "Disabled", RF24_CRC_8: "8-bit", RF24_CRC_16: "16-bit"}
 
-    current_settings = {
-        'pa_level': pa_levels.get(radio.getPALevel(), "LOW"),
-        'data_rate': data_rates.get(radio.getDataRate(), "1MBPS"),
-        'channel': radio.getChannel(),
-        'retry_delay': current_retry_delay,
-        'retry_count': current_retry_count,
-        'crc_length': crc_lengths.get(current_crc_length, "16-bit"),
-        'auto_ack': current_auto_ack,
-        'dynamic_payloads': current_dynamic_payloads,
-        'mode': current_mode,
-        'multiceiver': multiceiver_enabled,
-        'pipe_addresses': pipe_addresses
-    }
+    # Load saved configuration
+    config = load_config()
+
+    # If no saved config exists, use the current radio settings
+    if config:
+        current_settings = {
+            'pa_level': config.get('pa_level', "LOW"),
+            'data_rate': config.get('data_rate', "1MBPS"),
+            'channel': config.get('channel', 76),
+            'retry_delay': config.get('retry_delay', 5),
+            'retry_count': config.get('retry_count', 15),
+            'pipe_addresses': config.get('pipe_addresses', ["2Node", "1Node"])
+        }
+    else:
+        # Fallback to radio's current settings
+        current_settings = {
+            'pa_level': pa_levels.get(radio.getPALevel(), "LOW"),
+            'data_rate': data_rates.get(radio.getDataRate(), "1MBPS"),
+            'channel': radio.getChannel(),
+            'retry_delay': current_retry_delay,
+            'retry_count': current_retry_count,
+            'pipe_addresses': [pipes[0].decode('utf-8'), pipes[1].decode('utf-8')]
+        }
 
     return render_template('options.html', settings=current_settings)
+
 
 @app.route('/update_config', methods=['POST'])
 def update_config():

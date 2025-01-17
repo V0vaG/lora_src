@@ -78,6 +78,7 @@
     <div class="container">
         <h2>NRF24L01 Configuration</h2>
         <form action="/update_config" method="POST">
+            <!-- Power Amplifier Level -->
             <div class="form-group">
                 <label for="pa_level">Power Amplifier Level</label>
                 <select id="pa_level" name="pa_level">
@@ -87,6 +88,8 @@
                     <option value="MAX" {{ 'selected' if settings.pa_level == 'MAX' else '' }}>MAX</option>
                 </select>
             </div>
+
+            <!-- Data Rate -->
             <div class="form-group">
                 <label for="data_rate">Data Rate</label>
                 <select id="data_rate" name="data_rate">
@@ -95,18 +98,26 @@
                     <option value="250KBPS" {{ 'selected' if settings.data_rate == '250KBPS' else '' }}>250 Kbps</option>
                 </select>
             </div>
+
+            <!-- Channel -->
             <div class="form-group">
                 <label for="channel">Channel (0-125)</label>
                 <input type="number" id="channel" name="channel" min="0" max="125" value="{{ settings.channel }}">
             </div>
+
+            <!-- Retry Delay -->
             <div class="form-group">
                 <label for="retry_delay">Retry Delay (0-15)</label>
                 <input type="number" id="retry_delay" name="retry_delay" min="0" max="15" value="{{ settings.retry_delay }}">
             </div>
+
+            <!-- Retry Count -->
             <div class="form-group">
                 <label for="retry_count">Retry Count (0-15)</label>
                 <input type="number" id="retry_count" name="retry_count" min="0" max="15" value="{{ settings.retry_count }}">
             </div>
+
+            <!-- CRC Length -->
             <div class="form-group">
                 <label for="crc_length">CRC Length</label>
                 <select id="crc_length" name="crc_length">
@@ -115,20 +126,30 @@
                     <option value="16-bit" {{ 'selected' if settings.crc_length == '16-bit' else '' }}>16-bit</option>
                 </select>
             </div>
+
+            <!-- Auto ACK -->
             <div class="form-group">
                 <label><input type="checkbox" name="auto_ack" {{ 'checked' if settings.auto_ack else '' }}> Auto ACK</label>
             </div>
+
+            <!-- Dynamic Payloads -->
             <div class="form-group">
                 <label><input type="checkbox" name="dynamic_payloads" {{ 'checked' if settings.dynamic_payloads else '' }}> Dynamic Payloads</label>
             </div>
+
+            <!-- Writing Pipe Address -->
             <div class="form-group">
                 <label for="pipe_0">Writing Pipe Address</label>
                 <input type="text" id="pipe_0" name="pipe_0" value="{{ settings.pipe_addresses[0] }}">
             </div>
+
+            <!-- Reading Pipe Address -->
             <div class="form-group">
                 <label for="pipe_1">Reading Pipe Address</label>
                 <input type="text" id="pipe_1" name="pipe_1" value="{{ settings.pipe_addresses[1] }}">
             </div>
+
+            <!-- Save and Back Buttons -->
             <div class="btn-container">
                 <button type="submit" class="btn">Save Configuration</button>
                 <a href="/" class="btn">&#8592; Back to Chat</a>
