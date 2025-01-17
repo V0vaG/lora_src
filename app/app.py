@@ -29,6 +29,17 @@ def save_config():
     print("Configuration saved.")
 
 
+def load_config():
+    """Load configuration from a JSON file."""
+    if os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE, "r") as file:
+            config = json.load(file)
+        print("Configuration loaded:", config)
+        return config
+    else:
+        print("No configuration file found. Using default settings.")
+    return None
+
 
 # Get local IP address
 def get_local_ip():
