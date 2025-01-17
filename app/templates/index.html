@@ -34,6 +34,10 @@
             font-weight: bold;
             position: relative;
         }
+        .info {
+            font-size: 12px;
+            margin-top: 5px;
+        }
         .gear-button {
             position: absolute;
             top: 10px;
@@ -75,11 +79,6 @@
             align-self: flex-start;
             border: 1px solid #ccc;
         }
-        .status-icon {
-            margin-left: 8px;
-            width: 16px;
-            height: 16px;
-        }
         .input-container {
             display: flex;
             padding: 10px;
@@ -111,6 +110,9 @@
     <div class="chat-container">
         <div class="header">
             LoRa Communication Dashboard
+            <div class="info">
+                <p><strong>Model:</strong> {{ pi_model }} | <strong>IP:</strong> {{ local_ip }}</p>
+            </div>
             <a href="/options.html" class="gear-button">
                 <img src="https://cdn-icons-png.flaticon.com/512/126/126472.png" alt="Options">
             </a>
@@ -140,4 +142,3 @@
     </div>
 </body>
 </html>
-
