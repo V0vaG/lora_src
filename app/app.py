@@ -6,7 +6,7 @@ import platform
 from RF24 import RF24, RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, RF24_PA_MAX, RF24_1MBPS, RF24_250KBPS, RF24_2MBPS, RF24_CRC_DISABLED, RF24_CRC_8, RF24_CRC_16
 import json
 import os
-
+import shlex
 
 app = Flask(__name__)
 
@@ -166,40 +166,94 @@ def setup_radio():
     radio.startListening()
     radio_status = "Connected"
 
+def process_setup_command(params, sender_pipe):
+    global current_retry_delay, current_retry_count
+
+    try:
+        args = shlex.split(params)  # Properly split parameters
+
+        # Default values
+        channel = radio.getChannel()
+        writing_pipe = pipe_addresses[0]  # Default '2Node'
+        reading_pipe = sender_pipe        # Set to sender's pipe
+
+        # Parse parameters
+        for i in range(len(args)):
+            if args[i] == '-c' and i + 1 < len(args):
+                channel = int(args[i + 1])
+            elif args[i] == '-w' and i + 1 < len(args):
+                writing_pipe = args[i + 1]
+            elif args[i] == '-r' and i + 1 < len(args):
+                reading_pipe = args[i + 1]
+
+        # Apply new settings for this sender
+        radio.stopListening()
+        radio.setChannel(channel)
+        radio.openWritingPipe(writing_pipe.encode('utf-8'))
+        radio.openReadingPipe(1, reading_pipe.encode('utf-8'))
+        radio.startListening()
+
+        # Save the configuration
+        save_config(writing_pipe, [reading_pipe] + ["1Node"] * 5)
+
+        response_message = f"Settings applied: Channel={channel}, Writing Pipe={writing_pipe}, Reading Pipe={reading_pipe}"
+        messages.append(response_message)
+        send_message(response_message)
+
+    except Exception as e:
+        error_message = f"Error in /setup: {str(e)}"
+        messages.append(error_message)
+        send_message(error_message)
+
 
 def receive_messages():
     while True:
         if radio.available():
-            while radio.available():
+            pipe_num = [0]
+            while radio.available(pipe_num):
                 length = radio.getDynamicPayloadSize()
                 if length > 0:
                     received_payload = radio.read(length)
                     try:
                         message = received_payload.decode('utf-8').rstrip('\x00')
-                        messages.append(f"Received: {message}")
+                        sender_pipe = pipe_addresses[pipe_num[0] - 1]  # Identify sender's pipe
+                        messages.append(f"Received from {sender_pipe}: {message}")
 
-                        # Auto-reply if the message starts with '/test'
+                        # Auto-reply for '/test'
                         if message.startswith('/test'):
                             response = message[len('/test'):].strip()
                             send_message(response)
+
+                        # Handle '/setup' and apply settings for sender
+                        elif message.startswith('/setup'):
+                            setup_params = message[len('/setup'):].strip()
+                            process_setup_command(setup_params, sender_pipe)
 
                     except UnicodeDecodeError:
                         messages.append("Received: [Corrupted/Invalid data]")
         time.sleep(0.5)
 
 
-def send_message(message):
+
+
+def send_message(message, target_pipe=None):
     radio.stopListening()
     radio.flush_tx()
-    trimmed_message = message[:32]
+    
+    # Use the specified target pipe or the default writing pipe
+    if target_pipe:
+        radio.openWritingPipe(target_pipe.encode('utf-8'))
+    
+    trimmed_message = message[:32]  # nRF24L01 has a max payload size of 32 bytes
     success = radio.write(trimmed_message.encode('utf-8'))
 
     if success:
-        messages.append(f"Sent: {trimmed_message} [Success]")
+        messages.append(f"Sent to {target_pipe if target_pipe else 'default'}: {trimmed_message} [Success]")
     else:
-        messages.append(f"Sent: {trimmed_message} [Failed]")
+        messages.append(f"Sent to {target_pipe if target_pipe else 'default'}: {trimmed_message} [Failed]")
     
     radio.startListening()
+
 
 @app.route('/')
 def index():
