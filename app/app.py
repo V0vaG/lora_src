@@ -166,68 +166,27 @@ def setup_radio():
     radio.startListening()
     radio_status = "Connected"
 
-def process_setup_command(params, sender_pipe):
-    global current_retry_delay, current_retry_count
-
-    try:
-        args = shlex.split(params)  # Properly split parameters
-
-        # Default values
-        channel = radio.getChannel()
-        writing_pipe = pipe_addresses[0]  # Default '2Node'
-        reading_pipe = sender_pipe        # Set to sender's pipe
-
-        # Parse parameters
-        for i in range(len(args)):
-            if args[i] == '-c' and i + 1 < len(args):
-                channel = int(args[i + 1])
-            elif args[i] == '-w' and i + 1 < len(args):
-                writing_pipe = args[i + 1]
-            elif args[i] == '-r' and i + 1 < len(args):
-                reading_pipe = args[i + 1]
-
-        # Apply new settings for this sender
-        radio.stopListening()
-        radio.setChannel(channel)
-        radio.openWritingPipe(writing_pipe.encode('utf-8'))
-        radio.openReadingPipe(1, reading_pipe.encode('utf-8'))
-        radio.startListening()
-
-        # Save the configuration
-        save_config(writing_pipe, [reading_pipe] + ["1Node"] * 5)
-
-        response_message = f"Settings applied: Channel={channel}, Writing Pipe={writing_pipe}, Reading Pipe={reading_pipe}"
-        messages.append(response_message)
-        send_message(response_message)
-
-    except Exception as e:
-        error_message = f"Error in /setup: {str(e)}"
-        messages.append(error_message)
-        send_message(error_message)
-
 
 def receive_messages():
     while True:
         if radio.available():
-            pipe_num = [0]
-            while radio.available(pipe_num):
+            while radio.available():
                 length = radio.getDynamicPayloadSize()
                 if length > 0:
                     received_payload = radio.read(length)
                     try:
                         message = received_payload.decode('utf-8').rstrip('\x00')
-                        sender_pipe = pipe_addresses[pipe_num[0] - 1]  # Identify sender's pipe
-                        messages.append(f"Received from {sender_pipe}: {message}")
+                        messages.append(f"Received: {message}")
 
-                        # Auto-reply for '/test'
+                        # Auto-reply if the message starts with '/test'
                         if message.startswith('/test'):
                             response = message[len('/test'):].strip()
                             send_message(response)
 
-                        # Handle '/setup' and apply settings for sender
+                        # Handle '/setup' command
                         elif message.startswith('/setup'):
                             setup_params = message[len('/setup'):].strip()
-                            process_setup_command(setup_params, sender_pipe)
+                            process_setup_command(setup_params)
 
                     except UnicodeDecodeError:
                         messages.append("Received: [Corrupted/Invalid data]")
@@ -236,24 +195,18 @@ def receive_messages():
 
 
 
-def send_message(message, target_pipe=None):
+def send_message(message):
     radio.stopListening()
     radio.flush_tx()
-    
-    # Use the specified target pipe or the default writing pipe
-    if target_pipe:
-        radio.openWritingPipe(target_pipe.encode('utf-8'))
-    
-    trimmed_message = message[:32]  # nRF24L01 has a max payload size of 32 bytes
+    trimmed_message = message[:32]
     success = radio.write(trimmed_message.encode('utf-8'))
 
     if success:
-        messages.append(f"Sent to {target_pipe if target_pipe else 'default'}: {trimmed_message} [Success]")
+        messages.append(f"Sent: {trimmed_message} [Success]")
     else:
-        messages.append(f"Sent to {target_pipe if target_pipe else 'default'}: {trimmed_message} [Failed]")
+        messages.append(f"Sent: {trimmed_message} [Failed]")
     
     radio.startListening()
-
 
 @app.route('/')
 def index():
