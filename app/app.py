@@ -178,9 +178,16 @@ def receive_messages():
                     try:
                         message = received_payload.decode('utf-8').rstrip('\x00')
                         messages.append(f"Received: {message}")
+
+                        # Auto-reply if the message starts with '/test'
+                        if message.startswith('/test'):
+                            response = message[len('/test'):].strip()
+                            send_message(response)
+
                     except UnicodeDecodeError:
                         messages.append("Received: [Corrupted/Invalid data]")
         time.sleep(0.5)
+
 
 def send_message(message):
     radio.stopListening()
@@ -288,11 +295,6 @@ def update_config():
     messages.append(f"Updated Config: PA={pa_level}, DataRate={data_rate}, Channel={channel}, Retries=({retry_delay},{retry_count}), Pipes=({pipe_0}, {reading_pipes})")
 
     return redirect(url_for('index'))
-
-
-
-
-
 
 
 def start_receiver():
