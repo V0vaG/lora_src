@@ -36,20 +36,39 @@ def save_config(writing_pipe, reading_pipes):
 
 
 def load_config():
-    """Load configuration from a JSON file."""
+    """Load the saved radio configuration from the JSON file."""
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, "r") as file:
             config = json.load(file)
         print("Configuration loaded:", config)
 
-        # Apply pipe addresses if they exist
-        if "pipe_addresses" in config and len(config["pipe_addresses"]) == 2:
-            pipes[0] = config["pipe_addresses"][0].encode('utf-8')
-            pipes[1] = config["pipe_addresses"][1].encode('utf-8')
-        return config
+        # Ensure all reading pipes are loaded
+        reading_pipes = config.get("reading_pipes", ["1Node"] * 6)
+
+        # Fill missing pipes if necessary
+        while len(reading_pipes) < 6:
+            reading_pipes.append("1Node")
+
+        return {
+            "pa_level": config.get("pa_level", "LOW"),
+            "data_rate": config.get("data_rate", "1MBPS"),
+            "channel": config.get("channel", 76),
+            "retry_delay": config.get("retry_delay", 5),
+            "retry_count": config.get("retry_count", 15),
+            "writing_pipe": config.get("writing_pipe", "2Node"),
+            "reading_pipes": reading_pipes
+        }
     else:
         print("No configuration file found. Using default settings.")
-    return None
+        return {
+            "pa_level": "LOW",
+            "data_rate": "1MBPS",
+            "channel": 76,
+            "retry_delay": 5,
+            "retry_count": 15,
+            "writing_pipe": "2Node",
+            "reading_pipes": ["1Node"] * 6
+        }
 
 
 # Get local IP address
@@ -147,10 +166,6 @@ def setup_radio():
     radio.flush_tx()
     radio.startListening()
     radio_status = "Connected"
-
-
-
-
 
 
 def receive_messages():
