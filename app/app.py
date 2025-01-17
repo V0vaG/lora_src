@@ -179,7 +179,10 @@ def receive_messages():
                         message = received_payload.decode('utf-8').rstrip('\x00')
                         config = load_config()
 
-                        # Only process commands if remote control is allowed
+                        # ✅ Always display the received message
+                        messages.append(f"Received: {message}")
+
+                        # ✅ Only process commands if remote control is enabled
                         if config.get("allow_remote_control", False):
                             if message.startswith('/test'):
                                 response = message[len('/test'):].strip()
@@ -195,7 +198,9 @@ def receive_messages():
                                         save_config(config["writing_pipe"], config["reading_pipes"], config["allow_remote_control"])
                                         send_message(f"Channel changed to {new_channel}")
                         else:
-                            messages.append("Remote control is disabled.")
+                            # ✅ Notify if remote control is disabled but still show the message
+                            if message.startswith('/'):
+                                messages.append("Remote control is disabled. Command ignored.")
                     except UnicodeDecodeError:
                         messages.append("Received: [Corrupted/Invalid data]")
         time.sleep(0.5)
