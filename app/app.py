@@ -181,17 +181,15 @@ def receive_messages():
                         if message.startswith('/test'):
                             response = message[len('/test'):].strip()
                             send_message(response)
-
-                        # Handle '/setup' command
-                        elif message.startswith('/setup'):
-                            setup_params = message[len('/setup'):].strip()
-                            process_setup_command(setup_params)
-
                         elif message.startswith('/c'):
                             channel_param = message[len('/c'):].strip()
                             if channel_param.isdigit():
                                 new_channel = int(channel_param)
                                 if 0 <= new_channel <= 125:
+                                    response = f"Channel changed to {new_channel}"
+                                    messages.append(response)
+                                    send_message(response)
+                                
                                     radio.stopListening()
                                     radio.setChannel(new_channel)
                                     radio.startListening()
@@ -200,9 +198,7 @@ def receive_messages():
                                     config = load_config()
                                     save_config(config["writing_pipe"], config["reading_pipes"])
 
-                                    response = f"Channel changed to {new_channel}"
-                                    messages.append(response)
-                                    send_message(response)
+
                                 else:
                                     error_msg = "Invalid channel. Must be between 0 and 125."
                                     messages.append(error_msg)
