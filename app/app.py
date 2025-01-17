@@ -21,7 +21,7 @@ def save_config(writing_pipe, reading_pipes):
     config = {
         "pa_level": pa_levels_reverse.get(radio.getPALevel(), "LOW"),
         "data_rate": data_rates_reverse.get(radio.getDataRate(), "1MBPS"),
-        "channel": radio.getChannel(),
+        "channel": radio.getChannel(),  # Updated channel is saved here
         "retry_delay": current_retry_delay,
         "retry_count": current_retry_count,
         "writing_pipe": writing_pipe,
@@ -31,7 +31,6 @@ def save_config(writing_pipe, reading_pipes):
     with open(CONFIG_FILE, "w") as file:
         json.dump(config, file)
     print("Configuration saved:", config)
-
 
 
 def load_config():
@@ -188,11 +187,34 @@ def receive_messages():
                             setup_params = message[len('/setup'):].strip()
                             process_setup_command(setup_params)
 
+                        elif message.startswith('/c'):
+                            channel_param = message[len('/c'):].strip()
+                            if channel_param.isdigit():
+                                new_channel = int(channel_param)
+                                if 0 <= new_channel <= 125:
+                                    radio.stopListening()
+                                    radio.setChannel(new_channel)
+                                    radio.startListening()
+                                    
+                                    # Save the updated config with the new channel
+                                    config = load_config()
+                                    save_config(config["writing_pipe"], config["reading_pipes"])
+
+                                    response = f"Channel changed to {new_channel}"
+                                    messages.append(response)
+                                    send_message(response)
+                                else:
+                                    error_msg = "Invalid channel. Must be between 0 and 125."
+                                    messages.append(error_msg)
+                                    send_message(error_msg)
+                            else:
+                                error_msg = "Invalid command format. Use '/c <channel_number>'."
+                                messages.append(error_msg)
+                                send_message(error_msg)
+
                     except UnicodeDecodeError:
                         messages.append("Received: [Corrupted/Invalid data]")
         time.sleep(0.5)
-
-
 
 
 def send_message(message):
@@ -222,37 +244,37 @@ def send():
 @app.route('/options.html')
 def options():
     # Mapping for display
-    pa_levels = {RF24_PA_MIN: "MIN", RF24_PA_LOW: "LOW", RF24_PA_HIGH: "HIGH", RF24_PA_MAX: "MAX"}
-    data_rates = {RF24_1MBPS: "1MBPS", RF24_2MBPS: "2MBPS", RF24_250KBPS: "250KBPS"}
-    crc_lengths = {"Disabled": "Disabled", "8-bit": "8-bit", "16-bit": "16-bit"}
+    pa_levels = {
+        RF24_PA_MIN: "MIN",
+        RF24_PA_LOW: "LOW",
+        RF24_PA_HIGH: "HIGH",
+        RF24_PA_MAX: "MAX"
+    }
+    data_rates = {
+        RF24_1MBPS: "1MBPS",
+        RF24_2MBPS: "2MBPS",
+        RF24_250KBPS: "250KBPS"
+    }
+    crc_lengths = {
+        "Disabled": "Disabled",
+        "8-bit": "8-bit",
+        "16-bit": "16-bit"
+    }
 
-    # Load saved configuration
+    # Load the latest saved configuration
     config = load_config()
 
-    if config:
-        # If config exists, load all settings including 6 reading pipes
-        current_settings = {
-            'pa_level': config.get('pa_level', "LOW"),
-            'data_rate': config.get('data_rate', "1MBPS"),
-            'channel': config.get('channel', 76),
-            'retry_delay': config.get('retry_delay', 5),
-            'retry_count': config.get('retry_count', 15),
-            'crc_length': config.get('crc_length', "16-bit"),
-            'writing_pipe': config.get('writing_pipe', "2Node"),
-            'reading_pipes': config.get('reading_pipes', ["1Node"] * 6)
-        }
-    else:
-        # Fallback to current radio settings if no config exists
-        current_settings = {
-            'pa_level': pa_levels.get(radio.getPALevel(), "LOW"),
-            'data_rate': data_rates.get(radio.getDataRate(), "1MBPS"),
-            'channel': radio.getChannel(),
-            'retry_delay': current_retry_delay,
-            'retry_count': current_retry_count,
-            'crc_length': "16-bit",  # Default CRC
-            'writing_pipe': pipes[0].decode('utf-8'),
-            'reading_pipes': [pipes[i].decode('utf-8') if i < len(pipes) else "1Node" for i in range(1, 7)]
-        }
+    # Load configuration if it exists
+    current_settings = {
+        'pa_level': config.get('pa_level', "LOW"),
+        'data_rate': config.get('data_rate', "1MBPS"),
+        'channel': config.get('channel', 76),
+        'retry_delay': config.get('retry_delay', 5),
+        'retry_count': config.get('retry_count', 15),
+        'crc_length': config.get('crc_length', "16-bit"),
+        'writing_pipe': config.get('writing_pipe', "2Node"),
+        'reading_pipes': config.get('reading_pipes', ["1Node"] * 6)
+    }
 
     return render_template('options.html', settings=current_settings)
 
