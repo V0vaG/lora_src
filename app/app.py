@@ -129,6 +129,7 @@ def setup_radio():
         print("Error: Radio hardware is not responding.")
         raise RuntimeError("Radio hardware is not responding")
     else:
+        time.sleep(1)  # Give the radio time to initialize
         print("Radio initialized successfully.")
 
     # Load saved configuration
