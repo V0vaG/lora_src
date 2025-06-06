@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     hostapd \
     dnsmasq \
     iproute2 \
+    iptables \
     iw \
     net-tools && \
     apt clean && \

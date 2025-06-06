@@ -11,8 +11,7 @@ import shlex
 
 from hotspot import start_hotspot
 
-# הפעלת ה-Hotspot לפני Flask
-start_hotspot()
+start_hotspot('vovaHotspot', '12345678', '192.168.4.1', 'wlan0')
 
 app = Flask(__name__)
 
