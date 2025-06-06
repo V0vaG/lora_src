@@ -51,3 +51,4 @@ COPY . .
 
 # Run the Flask app
 CMD ["python3", "app.py"]
+
