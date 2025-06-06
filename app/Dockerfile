@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y \
     iproute2 \
     iw \
     net-tools && \
-    apt clean
+    apt clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Python packages
