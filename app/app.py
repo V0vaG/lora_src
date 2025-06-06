@@ -8,6 +8,12 @@ import json
 import os
 import shlex
 
+
+from hotspot import start_hotspot
+
+# הפעלת ה-Hotspot לפני Flask
+start_hotspot()
+
 app = Flask(__name__)
 
 
