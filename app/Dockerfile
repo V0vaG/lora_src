@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y \
     iw \
     net-tools && \
     apt clean
-    && rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/*
 
 # Install Python packages
 #RUN pip3 install Flask RPi.GPIO
