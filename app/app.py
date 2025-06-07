@@ -22,7 +22,9 @@ if  hot_spot_enabled:
     password = '12345678'
     site_ip = '192.168.4.1'
 
-    start_hotspot(ssid, password, site_ip, 'wlan0')
+    # start_hotspot(ssid, password, site_ip, 'wlan0')
+
+    start_hotspot()
     
     print(f"SSID: {ssid}, password: {password}")
     print(f"Server running on http://{site_ip}:{port}")
