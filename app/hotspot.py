@@ -1,13 +1,15 @@
-# file: hotspot.py
-
 import subprocess
 import time
+import os
+import signal
 
 def start_hotspot(ssid, password, site_ip, interface):
     print("🔥 Starting WiFi Hotspot...")
-    
-    # Kill any existing dnsmasq and flush IP
-    run("pkill -f dnsmasq", critical=False)
+
+    # Kill existing dnsmasq/hostapd processes
+    kill_process("dnsmasq")
+    kill_process("hostapd")
+
     time.sleep(1)
     run(f"ip addr flush dev {interface}")
 
@@ -30,7 +32,8 @@ rsn_pairwise=CCMP
     print("📝 hostapd.conf written")
 
     # Write dnsmasq.conf
-    dhcp_range = site_ip.rsplit('.', 1)[0] + ".10," + site_ip.rsplit('.', 1)[0] + ".100"
+    dhcp_base = site_ip.rsplit('.', 1)[0]
+    dhcp_range = f"{dhcp_base}.10,{dhcp_base}.100"
     with open("dnsmasq.conf", "w") as f:
         f.write(f"""interface={interface}
 dhcp-range={dhcp_range},12h
@@ -49,18 +52,28 @@ dhcp-range={dhcp_range},12h
     run(f"iptables -A FORWARD -i {interface} -o eth0 -j ACCEPT")
     run(f"iptables -A FORWARD -i eth0 -o {interface} -m state --state RELATED,ESTABLISHED -j ACCEPT")
 
-    # Launch dnsmasq (in debug mode for logging)
+    # Launch dnsmasq
     print("\n🚀 Launching dnsmasq...")
     subprocess.Popen("dnsmasq -d -C dnsmasq.conf", shell=True)
 
-    # Launch hostapd (background)
+    # Launch hostapd
     print("\n📡 Launching hostapd...")
     subprocess.Popen("hostapd hostapd.conf", shell=True)
 
     print(f"\n✅ Hotspot should now be active: SSID={ssid}, IP={site_ip}")
     time.sleep(3)
 
-
+def kill_process(process_name):
+    """Kills all processes matching a name."""
+    print(f"🔍 Checking for running '{process_name}' processes...")
+    try:
+        output = subprocess.check_output(f"pgrep -f {process_name}", shell=True).decode().strip().split('\n')
+        for pid in output:
+            if pid:
+                print(f"🛑 Killing {process_name} (PID {pid})")
+                os.kill(int(pid), signal.SIGTERM)
+    except subprocess.CalledProcessError:
+        print(f"✅ No running '{process_name}' found")
 
 def run(cmd, critical=True):
     print(f"\n🔧 Running: {cmd}")
