@@ -16,7 +16,7 @@ port = 5000
 hot_spot_enabled = True  # Set to True to enable hotspot mode
 
 if  hot_spot_enabled:
-    ssid = 'vovaHotspot'
+    ssid = 'vovaHotspot2'
     password = '12345678'
     site_ip = '192.168.4.1'
 
