@@ -191,39 +191,43 @@ def setup_radio():
 
 def receive_messages():
     while True:
-        if radio.available():
-            while radio.available():
-                length = radio.getDynamicPayloadSize()
-                if length > 0:
-                    received_payload = radio.read(length)
-                    try:
-                        message = received_payload.decode('utf-8').rstrip('\x00')
-                        config = load_config()
+        try:
+            if radio.available():
+                while radio.available():
+                    length = radio.getDynamicPayloadSize()
+                    if length > 0:
+                        received_payload = radio.read(length)
+                        try:
+                            message = received_payload.decode('utf-8').rstrip('\x00')
+                            config = load_config()
 
-                        # ✅ Always display the received message
-                        messages.append(f"Received: {message}")
+                            messages.append(f"Received: {message}")
 
-                        # ✅ Only process commands if remote control is enabled
-                        if config.get("allow_remote_control", False):
-                            if message.startswith('/test'):
-                                response = message[len('/test'):].strip()
-                                send_message(response)
-                            elif message.startswith('/c'):
-                                channel_param = message[len('/c'):].strip()
-                                if channel_param.isdigit():
-                                    new_channel = int(channel_param)
-                                    if 0 <= new_channel <= 125:
-                                        radio.stopListening()
-                                        radio.setChannel(new_channel)
-                                        radio.startListening()
-                                        save_config(config["writing_pipe"], config["reading_pipes"], config["allow_remote_control"])
-                                        send_message(f"Channel changed to {new_channel}")
-                        else:
-                            # ✅ Notify if remote control is disabled but still show the message
-                            if message.startswith('/'):
-                                messages.append("Remote control is disabled. Command ignored.")
-                    except UnicodeDecodeError:
-                        messages.append("Received: [Corrupted/Invalid data]")
+                            if config.get("allow_remote_control", False):
+                                if message.startswith('/test'):
+                                    response = message[len('/test'):].strip()
+                                    send_message(response)
+                                elif message.startswith('/c'):
+                                    channel_param = message[len('/c'):].strip()
+                                    if channel_param.isdigit():
+                                        new_channel = int(channel_param)
+                                        if 0 <= new_channel <= 125:
+                                            radio.stopListening()
+                                            radio.setChannel(new_channel)
+                                            radio.startListening()
+                                            save_config(config["writing_pipe"], config["reading_pipes"], config["allow_remote_control"])
+                                            send_message(f"Channel changed to {new_channel}")
+                            else:
+                                if message.startswith('/'):
+                                    messages.append("Remote control is disabled. Command ignored.")
+                        except UnicodeDecodeError:
+                            messages.append("Received: [Corrupted/Invalid data]")
+        except RuntimeError as e:
+            if "[SPI::transfernb]" in str(e):
+                print("❌ SPI interface error: Bad file descriptor.")
+                print("➡️  To fix this, run: sudo raspi-config -> Interface Options -> SPI -> Enable")
+                messages.append("⚠️ SPI not enabled. Enable it via: raspi-config > Interface Options > SPI.")
+                break  # Exit thread if SPI isn't available to avoid repeated errors
         time.sleep(0.5)
 
 
