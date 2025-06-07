@@ -4,13 +4,16 @@ import subprocess
 import time
 
 def start_hotspot(ssid, password, site_ip, interface):
-    """Sets up a WiFi hotspot with the given configuration."""
-    subprocess.run("pkill dnsmasq", shell=True)
-    subprocess.run(f"ip addr flush dev {interface}", shell=True)
+    print("🔥 Starting WiFi Hotspot...")
+    
+    # Kill any existing dnsmasq and flush IP
+    run("pkill -f dnsmasq", critical=False)
+    time.sleep(1)
+    run(f"ip addr flush dev {interface}")
 
+    # Write hostapd.conf
     with open("hostapd.conf", "w") as f:
-        f.write(f"""
-interface={interface}
+        f.write(f"""interface={interface}
 driver=nl80211
 ssid={ssid}
 hw_mode=g
@@ -24,22 +27,50 @@ wpa_passphrase={password}
 wpa_key_mgmt=WPA-PSK
 rsn_pairwise=CCMP
 """)
+    print("📝 hostapd.conf written")
 
+    # Write dnsmasq.conf
+    dhcp_range = site_ip.rsplit('.', 1)[0] + ".10," + site_ip.rsplit('.', 1)[0] + ".100"
     with open("dnsmasq.conf", "w") as f:
-        f.write(f"""
-interface={interface}
-dhcp-range=192.168.4.10,192.168.4.100,12h
+        f.write(f"""interface={interface}
+dhcp-range={dhcp_range},12h
 """)
+    print("📝 dnsmasq.conf written")
 
-    subprocess.run(f"ip link set {interface} down", shell=True)
-    subprocess.run(f"iw dev {interface} set type __ap", shell=True)
-    subprocess.run(f"ip link set {interface} up", shell=True)
-    subprocess.run(f"ip addr add {site_ip}/24 dev {interface}", shell=True)
-    subprocess.run("sysctl -w net.ipv4.ip_forward=1", shell=True)
-    subprocess.run("iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE", shell=True)
-    subprocess.run(f"iptables -A FORWARD -i {interface} -o eth0 -j ACCEPT", shell=True)
-    subprocess.run(f"iptables -A FORWARD -i eth0 -o {interface} -m state --state RELATED,ESTABLISHED -j ACCEPT", shell=True)
+    # Configure interface
+    run(f"ip link set {interface} down")
+    run(f"iw dev {interface} set type __ap")
+    run(f"ip link set {interface} up")
+    run(f"ip addr add {site_ip}/24 dev {interface}")
+    run("sysctl -w net.ipv4.ip_forward=1")
 
-    subprocess.Popen("dnsmasq -C dnsmasq.conf", shell=True)
+    # Configure NAT
+    run("iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE")
+    run(f"iptables -A FORWARD -i {interface} -o eth0 -j ACCEPT")
+    run(f"iptables -A FORWARD -i eth0 -o {interface} -m state --state RELATED,ESTABLISHED -j ACCEPT")
+
+    # Launch dnsmasq (in debug mode for logging)
+    print("\n🚀 Launching dnsmasq...")
+    subprocess.Popen("dnsmasq -d -C dnsmasq.conf", shell=True)
+
+    # Launch hostapd (background)
+    print("\n📡 Launching hostapd...")
     subprocess.Popen("hostapd hostapd.conf", shell=True)
+
+    print(f"\n✅ Hotspot should now be active: SSID={ssid}, IP={site_ip}")
     time.sleep(3)
+
+
+
+def run(cmd, critical=True):
+    print(f"\n🔧 Running: {cmd}")
+    result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = result.stdout.decode().strip(), result.stderr.decode().strip()
+    
+    if result.returncode != 0:
+        print(f"❌ Error: {err}")
+        if critical:
+            raise RuntimeError(f"Command failed: {cmd}")
+    else:
+        print(f"✅ Success: {out}")
+    return result
