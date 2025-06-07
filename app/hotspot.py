@@ -5,8 +5,7 @@ import time
 
 def start_hotspot(ssid, password, site_ip, interface):
     """Sets up a WiFi hotspot with the given configuration."""
-    subprocess.run("pkill -f dnsmasq", shell=True)
-    time.sleep(1)
+    subprocess.run("pkill dnsmasq", shell=True)
     subprocess.run(f"ip addr flush dev {interface}", shell=True)
 
     with open("hostapd.conf", "w") as f:
@@ -41,10 +40,6 @@ dhcp-range=192.168.4.10,192.168.4.100,12h
     subprocess.run(f"iptables -A FORWARD -i {interface} -o eth0 -j ACCEPT", shell=True)
     subprocess.run(f"iptables -A FORWARD -i eth0 -o {interface} -m state --state RELATED,ESTABLISHED -j ACCEPT", shell=True)
 
-    print("Launching dnsmasq...")
-    result = subprocess.run("dnsmasq -C dnsmasq.conf", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    print("DNSMASQ OUT:", result.stdout.decode())
-    print("DNSMASQ ERR:", result.stderr.decode())
-
+    subprocess.Popen("dnsmasq -C dnsmasq.conf", shell=True)
     subprocess.Popen("hostapd hostapd.conf", shell=True)
     time.sleep(3)
