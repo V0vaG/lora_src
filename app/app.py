@@ -26,11 +26,6 @@ if  hot_spot_enabled:
     
     print(f"SSID: {ssid}, {password}: 12345678")
     print(f"Server running on http://{site_ip}:{port}")
-    print(f"Radio status: {radio_status}")
-    print(f"Raspberry Pi model: {pi_model}")
-    print("Press Ctrl+C to stop the server.")
-
-
 
 
 app = Flask(__name__)
