@@ -1,0 +1,10 @@
+services:
+  hotspot-app:
+    image: vova0911/lora:arm64_1.0.0
+    container_name: hotspot-app
+    network_mode: host
+    privileged: true
+    devices:
+      - /dev/spidev0.0
+      - /dev/gpiomem
+    restart: "no"
