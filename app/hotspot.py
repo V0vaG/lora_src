@@ -5,7 +5,8 @@ import time
 
 def start_hotspot(ssid, password, site_ip, interface):
     """Sets up a WiFi hotspot with the given configuration."""
-    subprocess.run("pkill dnsmasq", shell=True)
+    subprocess.run("pkill -f dnsmasq", shell=True)
+    time.sleep(1)
     subprocess.run(f"ip addr flush dev {interface}", shell=True)
 
     with open("hostapd.conf", "w") as f:

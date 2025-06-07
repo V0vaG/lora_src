@@ -15,7 +15,7 @@ port = 5000
 
 hot_spot_enabled = True  # Set to True to enable hotspot mode
 
-print(f"Phot_spot: {hot_spot_enabled}")
+print(f"hot_spot: {hot_spot_enabled}")
 
 if  hot_spot_enabled:
     ssid = 'vovaHotspot2'
