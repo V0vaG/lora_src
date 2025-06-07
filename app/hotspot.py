@@ -64,16 +64,20 @@ dhcp-range={dhcp_range},12h
     time.sleep(3)
 
 def kill_process(process_name):
-    """Kills all processes matching a name."""
+    """Kills all processes matching a name, safely."""
     print(f"🔍 Checking for running '{process_name}' processes...")
     try:
         output = subprocess.check_output(f"pgrep -f {process_name}", shell=True).decode().strip().split('\n')
         for pid in output:
             if pid:
-                print(f"🛑 Killing {process_name} (PID {pid})")
-                os.kill(int(pid), signal.SIGTERM)
+                try:
+                    print(f"🛑 Killing {process_name} (PID {pid})")
+                    os.kill(int(pid), signal.SIGTERM)
+                except ProcessLookupError:
+                    print(f"⚠️ Process {pid} already exited.")
     except subprocess.CalledProcessError:
         print(f"✅ No running '{process_name}' found")
+
 
 def run(cmd, critical=True):
     print(f"\n🔧 Running: {cmd}")
