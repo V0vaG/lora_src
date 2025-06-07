@@ -24,7 +24,7 @@ if  hot_spot_enabled:
 
     start_hotspot(ssid, password, site_ip, 'wlan0')
     
-    print(f"SSID: {ssid}, {password}: 12345678")
+    print(f"SSID: {ssid}, password: {password}")
     print(f"Server running on http://{site_ip}:{port}")
 
 

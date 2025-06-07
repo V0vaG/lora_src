@@ -41,6 +41,10 @@ dhcp-range=192.168.4.10,192.168.4.100,12h
     subprocess.run(f"iptables -A FORWARD -i {interface} -o eth0 -j ACCEPT", shell=True)
     subprocess.run(f"iptables -A FORWARD -i eth0 -o {interface} -m state --state RELATED,ESTABLISHED -j ACCEPT", shell=True)
 
-    subprocess.Popen("dnsmasq -C dnsmasq.conf", shell=True)
+    print("Launching dnsmasq...")
+    result = subprocess.run("dnsmasq -C dnsmasq.conf", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    print("DNSMASQ OUT:", result.stdout.decode())
+    print("DNSMASQ ERR:", result.stderr.decode())
+
     subprocess.Popen("hostapd hostapd.conf", shell=True)
     time.sleep(3)
