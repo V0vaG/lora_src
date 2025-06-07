@@ -15,12 +15,20 @@ port = 5000
 
 hot_spot_enabled = True  # Set to True to enable hotspot mode
 
+print(f"Phot_spot: {hot_spot_enabled}")
+
 if  hot_spot_enabled:
     ssid = 'vovaHotspot2'
     password = '12345678'
     site_ip = '192.168.4.1'
 
     start_hotspot(ssid, password, site_ip, 'wlan0')
+    
+    print(f"SSID: {ssid}, {password}: 12345678")
+    print(f"Server running on http://{site_ip}:{port}")
+    print(f"Radio status: {radio_status}")
+    print(f"Raspberry Pi model: {pi_model}")
+    print("Press Ctrl+C to stop the server.")
 
 
 
@@ -329,7 +337,3 @@ if __name__ == '__main__':
         pass
     start_receiver()
     app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
-    print(f"Server running on http://{local_ip}:{port}")
-    print(f"Radio status: {radio_status}")
-    print(f"Raspberry Pi model: {pi_model}")
-    print("Press Ctrl+C to stop the server.")
