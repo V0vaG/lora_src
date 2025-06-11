@@ -1,4 +1,4 @@
-# Use Raspberry Pi-compatible Python image 1
+# Use Raspberry Pi-compatible Python image 12
 FROM python:3.11-slim
 
 
